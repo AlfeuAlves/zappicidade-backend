@@ -21,6 +21,8 @@ fastify.register(require('@fastify/cors'), {
       /^http:\/\/localhost:\d+$/,      // qualquer porta localhost
       /\.vitrinelocal\.com\.br$/,
       /\.zappicidade\.com\.br$/,
+      /\.vercel\.app$/,               // deploys do Vercel
+      /\.railway\.app$/,              // deploys do Railway
     ]
     cb(null, allowed.some(r => r.test(origin)))
   },
