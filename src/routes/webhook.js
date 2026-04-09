@@ -1,0 +1,101 @@
+// ============================================================
+// WEBHOOK — Recebe mensagens da Z-API e aciona o agente IA
+// ============================================================
+// Endpoint: POST /webhook/zapi
+//
+// Fluxo:
+//   1. Z-API envia mensagem recebida
+//   2. Filtra: ignora mensagens próprias, grupos, não-texto
+//   3. Chama agente.processar(telefone, texto)
+//   4. Envia resposta via zapi.sendText()
+// ============================================================
+
+const agente = require('../bot/agente')
+const zapi   = require('../bot/zapi')
+const sessoes = require('../bot/sessoes')
+
+async function webhookRoutes(fastify) {
+
+  // POST /webhook/zapi — mensagens recebidas da Z-API
+  fastify.post('/zapi', async (req, reply) => {
+    const payload = req.body
+
+    // ── Validações de segurança básica ─────────────────────
+    // Ignora mensagens enviadas pelo próprio bot
+    if (payload.fromMe === true) {
+      return reply.status(200).send({ ok: true, ignorado: 'fromMe' })
+    }
+
+    // Ignora mensagens de grupos
+    if (payload.isGroup === true || payload.participantPhone) {
+      return reply.status(200).send({ ok: true, ignorado: 'grupo' })
+    }
+
+    // Só processa tipo de callback de mensagem recebida
+    if (payload.type !== 'ReceivedCallback') {
+      return reply.status(200).send({ ok: true, ignorado: `tipo:${payload.type}` })
+    }
+
+    // Só processa texto por enquanto
+    const texto = payload.text?.message
+    if (!texto || typeof texto !== 'string' || texto.trim() === '') {
+      return reply.status(200).send({ ok: true, ignorado: 'sem_texto' })
+    }
+
+    const telefone = payload.phone
+    if (!telefone) {
+      return reply.status(200).send({ ok: true, ignorado: 'sem_telefone' })
+    }
+
+    // ── Processa com o agente ──────────────────────────────
+    fastify.log.info({ telefone, texto }, '📨 Mensagem recebida')
+
+    try {
+      const resposta = await agente.processar(telefone, texto.trim())
+
+      await zapi.sendText(telefone, resposta)
+
+      fastify.log.info({ telefone, chars: resposta.length }, '✅ Resposta enviada')
+
+      return reply.status(200).send({ ok: true })
+
+    } catch (err) {
+      fastify.log.error({ err: err.message, telefone }, '❌ Erro ao processar mensagem')
+
+      // Tenta enviar mensagem de erro para o usuário
+      try {
+        await zapi.sendText(
+          telefone,
+          'Opa, tive um problema técnico aqui 😅 Tenta de novo em instantes!'
+        )
+      } catch (_) { /* silencia erro no fallback */ }
+
+      return reply.status(200).send({ ok: false, erro: err.message })
+    }
+  })
+
+  // GET /webhook/status — diagnóstico rápido
+  fastify.get('/status', async (req, reply) => {
+    const sessoes_ativas = sessoes.totalAtivas()
+
+    let whatsapp_status = 'não configurado'
+    if (process.env.ZAPI_INSTANCE_ID && process.env.ZAPI_TOKEN) {
+      try {
+        const st = await zapi.getStatus()
+        whatsapp_status = st.connected ? 'conectado' : `desconectado (${st.status || 'unknown'})`
+      } catch (err) {
+        whatsapp_status = `erro: ${err.message}`
+      }
+    }
+
+    return {
+      bot:             'ZappiCidade Bot',
+      sessoes_ativas,
+      whatsapp_status,
+      ia_configurada:  !!process.env.ANTHROPIC_API_KEY,
+      timestamp:       new Date().toISOString()
+    }
+  })
+}
+
+module.exports = webhookRoutes
