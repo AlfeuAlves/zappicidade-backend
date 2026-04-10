@@ -142,7 +142,7 @@ async function buscar_comercios({ busca, categoria, bairro, limit = 5 }) {
       whatsapp:   c.whatsapp || null,
       aberto:     c.aberto_agora,
       avaliacao:  c.avaliacao,
-      link_perfil: `https://zappicidade.com.br/c/${c.slug}`
+      link_perfil: `https://zappicidade-site.vercel.app/c/${c.slug}`
     }))
   }
 }
@@ -183,7 +183,7 @@ async function get_detalhes_comercio({ slug }) {
     horarios,
     aberto_agora: data.aberto_agora,
     avaliacao:   data.avaliacao,
-    link_perfil: `https://zappicidade.com.br/c/${data.slug}`,
+    link_perfil: `https://zappicidade-site.vercel.app/c/${data.slug}`,
     link_whatsapp: data.whatsapp
       ? `https://wa.me/55${data.whatsapp.replace(/\D/g, '')}?text=Olá, vi vocês no ZappiCidade!`
       : null,
@@ -225,7 +225,7 @@ async function buscar_promocoes({ categoria, limit = 5 }) {
       preco_de:  p.preco_de,
       preco_por: p.preco_por,
       validade:  p.fim ? new Date(p.fim).toLocaleDateString('pt-BR') : 'sem prazo',
-      link:      p.comercios?.slug ? `https://zappicidade.com.br/c/${p.comercios.slug}` : null
+      link:      p.comercios?.slug ? `https://zappicidade-site.vercel.app/c/${p.comercios.slug}` : null
     }))
   }
 }
