@@ -7,7 +7,7 @@
 // ============================================================
 
 const TIMEOUT_MS     = 30 * 60 * 1000  // 30 minutos
-const MAX_HISTORICO  = 20               // máximo de mensagens por sessão
+const MAX_HISTORICO  = 12              // máximo de mensagens por sessão (~3 trocas completas)
 
 const sessoes = new Map()
 
@@ -33,6 +33,7 @@ function getOuCriar(telefone) {
       historico:        [],    // array de { role, content }
       ultima_atividade: Date.now(),
       nome_usuario:     null,  // preenchido quando o usuário se identificar
+      localizacao:      null,  // { lat, lng, bairro, origem } — definido quando usuário compartilha
     })
   }
   return sessoes.get(telefone)
@@ -46,12 +47,41 @@ function addMensagem(telefone, role, content) {
   sessao.historico.push({ role, content })
   sessao.ultima_atividade = Date.now()
 
-  // Mantém apenas as últimas MAX_HISTORICO mensagens
+  // Mantém apenas as últimas MAX_HISTORICO mensagens,
+  // garantindo que nunca fique um tool_use sem seu tool_result
   if (sessao.historico.length > MAX_HISTORICO) {
-    sessao.historico = sessao.historico.slice(-MAX_HISTORICO)
+    let cortado = sessao.historico.slice(-MAX_HISTORICO)
+    // Se a primeira mensagem do histórico cortado é um tool_result (role=user com array),
+    // remove ela também pois ficou sem o tool_use correspondente
+    while (
+      cortado.length > 0 &&
+      cortado[0].role === 'user' &&
+      Array.isArray(cortado[0].content) &&
+      cortado[0].content.some(b => b.type === 'tool_result')
+    ) {
+      cortado = cortado.slice(1)
+    }
+    sessao.historico = cortado
   }
 
   return sessao
+}
+
+/**
+ * Salva a localização do usuário na sessão.
+ * origem: 'gps' | 'bairro' (informado manualmente)
+ */
+function salvarLocalizacao(telefone, localizacao) {
+  const sessao = getOuCriar(telefone)
+  sessao.localizacao      = localizacao
+  sessao.ultima_atividade = Date.now()
+}
+
+/**
+ * Retorna a localização salva na sessão (ou null).
+ */
+function getLocalizacao(telefone) {
+  return sessoes.get(telefone)?.localizacao || null
 }
 
 /**
@@ -72,4 +102,4 @@ function totalAtivas() {
   return sessoes.size
 }
 
-module.exports = { getOuCriar, addMensagem, resetar, totalAtivas }
+module.exports = { getOuCriar, addMensagem, resetar, totalAtivas, salvarLocalizacao, getLocalizacao }

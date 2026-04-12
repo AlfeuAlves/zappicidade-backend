@@ -36,15 +36,36 @@ async function webhookRoutes(fastify) {
       return reply.status(200).send({ ok: true, ignorado: `tipo:${payload.type}` })
     }
 
-    // Só processa texto por enquanto
-    const texto = payload.text?.message
-    if (!texto || typeof texto !== 'string' || texto.trim() === '') {
-      return reply.status(200).send({ ok: true, ignorado: 'sem_texto' })
-    }
-
     const telefone = payload.phone
     if (!telefone) {
       return reply.status(200).send({ ok: true, ignorado: 'sem_telefone' })
+    }
+
+    // ── Localização compartilhada pelo usuário (📎 → Localização) ──
+    const loc = payload.location
+    if (loc && loc.latitude && loc.longitude) {
+      sessoes.salvarLocalizacao(telefone, {
+        lat:    parseFloat(loc.latitude),
+        lng:    parseFloat(loc.longitude),
+        bairro: null,
+        origem: 'gps'
+      })
+      fastify.log.info({ telefone, lat: loc.latitude, lng: loc.longitude }, '📍 Localização recebida')
+
+      try {
+        await zapi.sendText(
+          telefone,
+          '📍 Localização recebida! Agora vou priorizar estabelecimentos perto de você. O que você está procurando? 😊'
+        )
+      } catch (_) {}
+
+      return reply.status(200).send({ ok: true, localização: 'salva' })
+    }
+
+    // Só processa texto
+    const texto = payload.text?.message
+    if (!texto || typeof texto !== 'string' || texto.trim() === '') {
+      return reply.status(200).send({ ok: true, ignorado: 'sem_texto' })
     }
 
     // ── Processa com o agente ──────────────────────────────
