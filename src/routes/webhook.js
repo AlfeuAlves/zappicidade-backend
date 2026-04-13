@@ -89,6 +89,27 @@ async function webhookRoutes(fastify) {
       return reply.status(200).send({ ok: true, ignorado: 'sem_texto' })
     }
 
+    // ── Mensagem de boas-vindas (primeiro contato via link) ──
+    const textoNorm = texto.trim().toLowerCase().replace(/[^a-záéíóúãõâêîôûç ]/gi, '').trim()
+    const eBemVindo = ['oi zappi', 'oi  zappi', 'olá zappi', 'ola zappi', 'oi!', 'oi'].includes(textoNorm)
+      || textoNorm === 'oi zappi'
+
+    if (eBemVindo && !sessoes.getOuCriar(telefone).mensagens?.length) {
+      const boasVindas = `Olá! 👋 Eu sou o *Zappi*, seu guia de comércios em Barcarena! 🐊
+
+Aqui você encontra farmácias, restaurantes, açaí, mercados, salões, barbearias e muito mais — tudo da nossa cidade.
+
+Para te mostrar os estabelecimentos *mais perto de você*, compartilhe sua localização agora 👇
+📎 Clique no clipe → *Localização* → *Enviar localização atual*
+
+Ou se preferir, é só me dizer o que está procurando! 😊
+_Ex: "farmácia aberta agora", "ponto de açaí no Centro", "restaurante"_`
+
+      try { await zapi.sendText(telefone, boasVindas) } catch (_) {}
+      sessoes.addMensagem(telefone, 'assistant', boasVindas)
+      return reply.status(200).send({ ok: true, boasvindas: true })
+    }
+
     // ── Processa com o agente ──────────────────────────────
     fastify.log.info({ telefone, texto }, '📨 Mensagem recebida')
 
