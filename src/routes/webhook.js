@@ -13,6 +13,24 @@
 const agente = require('../bot/agente')
 const zapi   = require('../bot/zapi')
 const sessoes = require('../bot/sessoes')
+const { supabaseAdmin } = require('../config/supabase')
+
+// Registra/atualiza usuário no banco (fire-and-forget — não bloqueia o bot)
+function registrarUsuario(telefone) {
+  supabaseAdmin
+    .from('usuarios_cidadaos')
+    .upsert(
+      { whatsapp: telefone, ultima_interacao: new Date().toISOString() },
+      { onConflict: 'whatsapp', ignoreDuplicates: false }
+    )
+    .then(({ error }) => {
+      if (!error) {
+        // Incrementa contador de interações
+        supabaseAdmin.rpc('incrementar_interacoes', { p_whatsapp: telefone }).catch(() => {})
+      }
+    })
+    .catch(() => {}) // nunca deixa falhar o fluxo principal
+}
 
 async function webhookRoutes(fastify) {
 
@@ -40,6 +58,9 @@ async function webhookRoutes(fastify) {
     if (!telefone) {
       return reply.status(200).send({ ok: true, ignorado: 'sem_telefone' })
     }
+
+    // ── Registra usuário no banco (toda mensagem válida) ──────
+    registrarUsuario(telefone)
 
     // ── Localização compartilhada pelo usuário (📎 → Localização) ──
     const loc = payload.location
