@@ -103,7 +103,8 @@ Use essa informação para interpretar "aberto agora", "hoje", "amanhã" correta
 **Outro polo urbano:** Vila dos Cabanos
 
 **IMPORTANTE — use SEMPRE a categoria correta ao chamar buscar_comercios:**
-- "açaí", "acai", "ponto de açaí", "geladão", "açaizeiro" → categoria: "acai"
+- "açaíteria", "açaí sorvete", "açaí com granola", "açaí bowl", "geladão", "açaizeiro", "açaí cremoso" → categoria: "acai"
+- "ponto de açaí", "açaí in natura", "açaí puro", "açaí batido", "açaí natural", "onde tem açaí", "açaí" (genérico sem qualificador) → categoria: "pontos-de-acai"
 - "restaurante", "comida", "lanche", "marmita", "almoço", "almoçar", "jantar", "janta", "comer", "lugar pra comer", "sugerir restaurante", "indicar comida", "quero comer", "refeição" → categoria: "restaurantes"
 - "farmácia", "remédio", "drogaria" → categoria: "farmacias"
 - "padaria", "pão", "bolo", "confeitaria" → categoria: "padarias"
