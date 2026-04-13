@@ -193,8 +193,7 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
       slug:         c.slug,
       categoria:    c.categoria_nome,
       bairro:       c.bairro || 'não informado',
-      telefone:     c.telefone || null,
-      whatsapp:     c.whatsapp || null,
+      contato:      c.whatsapp ? `📱 WhatsApp: ${c.whatsapp}` : (c.telefone ? `📞 Telefone: ${c.telefone}` : null),
       aberto:       c.aberto_agora,
       avaliacao:    c.avaliacao,
       distancia_km: c.distancia_km && c.distancia_km < 999
