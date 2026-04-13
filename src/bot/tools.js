@@ -200,7 +200,7 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
       distancia_km: c.distancia_km && c.distancia_km < 999
         ? parseFloat(c.distancia_km.toFixed(1))
         : null,
-      link_perfil:  `https://zappicidade-site.vercel.app/c/${c.slug}`
+      link_perfil:  `https://www.zappicidadebarcarena.com.br/c/${c.slug}`
     }))
   }
 }
