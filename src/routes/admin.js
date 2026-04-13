@@ -175,6 +175,37 @@ async function adminRoutes(fastify) {
     return { data: data || [], total: count || 0 }
   })
 
+  // ── GET /admin/bairros/pendentes ─────────────────────────────
+  fastify.get('/bairros/pendentes', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { page = 1, limit = 1 } = req.query
+    const offset = (parseInt(page) - 1) * parseInt(limit)
+
+    const { data, count, error } = await supabaseAdmin
+      .from('comercios')
+      .select('id, nome, endereco, bairro', { count: 'exact' })
+      .is('bairro', null)
+      .eq('status_operacional', 'ativo')
+      .order('nome', { ascending: true })
+      .range(offset, offset + parseInt(limit) - 1)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { data: data || [], total: count || 0 }
+  })
+
+  // ── PUT /admin/bairros/:id ────────────────────────────────────
+  fastify.put('/bairros/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { bairro } = req.body || {}
+
+    const { error } = await supabaseAdmin
+      .from('comercios')
+      .update({ bairro: bairro || null })
+      .eq('id', id)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
   // ── GET /admin/verificar/:token (link via WhatsApp — legado) ──
   fastify.get('/verificar/:token', async (req, reply) => {
     const { token } = req.params
