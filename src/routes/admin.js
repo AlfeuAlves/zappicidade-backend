@@ -206,6 +206,56 @@ async function adminRoutes(fastify) {
     return { ok: true }
   })
 
+  // ── GET /admin/comercios/:id ─────────────────────────────────
+  fastify.get('/comercios/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+
+    const { data, error } = await supabaseAdmin
+      .from('comercios')
+      .select('id, nome, slug, endereco, bairro, telefone, whatsapp, status_operacional, verificado, destaque, avaliacao, total_avaliacoes, categoria_id, maps_url, website, foto_capa_url')
+      .eq('id', id)
+      .single()
+
+    if (error || !data) return reply.status(404).send({ erro: 'Comércio não encontrado' })
+    return data
+  })
+
+  // ── PUT /admin/comercios/:id ──────────────────────────────────
+  fastify.put('/comercios/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const allowed = ['nome', 'endereco', 'bairro', 'telefone', 'whatsapp', 'status_operacional', 'verificado', 'destaque', 'maps_url', 'website', 'foto_capa_url', 'categoria_id']
+
+    const updates = {}
+    for (const key of allowed) {
+      if (key in (req.body || {})) {
+        updates[key] = req.body[key] === '' ? null : req.body[key]
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return reply.status(400).send({ erro: 'Nenhum campo válido para atualizar' })
+    }
+
+    const { error } = await supabaseAdmin
+      .from('comercios')
+      .update(updates)
+      .eq('id', id)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
+  // ── GET /admin/categorias ─────────────────────────────────────
+  fastify.get('/categorias', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { data, error } = await supabaseAdmin
+      .from('categorias')
+      .select('id, nome, slug, icone')
+      .eq('ativo', true)
+      .order('nome')
+    if (error) return reply.status(500).send({ erro: error.message })
+    return data || []
+  })
+
   // ── GET /admin/verificar/:token (link via WhatsApp — legado) ──
   fastify.get('/verificar/:token', async (req, reply) => {
     const { token } = req.params
