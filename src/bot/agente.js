@@ -14,7 +14,7 @@ const client = new Anthropic.default({
 })
 
 const MODEL      = 'claude-haiku-4-5-20251001'
-const MAX_TOKENS = 600   // WhatsApp: respostas curtas
+const MAX_TOKENS = 900   // 5 comércios × ~3 linhas cada + intro + pergunta final
 const TEMPERATURE = 0   // Determinístico: mapeamento categoria sempre igual
 
 // ── Prompt do sistema ────────────────────────────────────────
@@ -50,18 +50,29 @@ Seu papel é ajudar os moradores de Barcarena a encontrar negócios locais, ver 
 - Se o usuário perguntar sobre um tipo de negócio, USE AS TOOLS para buscar dados reais — nunca invente informações
 - Se não encontrar resultados, sugira buscas alternativas ou diga honestamente que não tem o dado
 
-**FORMATO OBRIGATÓRIO ao apresentar cada comércio:**
-📍 *Nome do comércio* · 📏 a X km de você (só se distancia_km disponível)
-📱 WhatsApp: [número] (se disponível, senão omita essa linha)
-🔗 https://www.zappicidadebarcarena.com.br/c/[slug]
+**FORMATO OBRIGATÓRIO — siga EXATAMENTE este modelo para cada comércio:**
 
-Sempre use exatamente esse formato para cada comércio.
-- Se distancia_km vier na resposta da tool, SEMPRE inclua "· 📏 a X km de você" na primeira linha
-- Se distancia_km for null, omita o trecho da distância — primeira linha fica só com o nome
-- Introdução: máximo 1 linha curta antes da lista (ex: "Aqui vão opções de restaurante 👇")
-- Após a lista: apenas "Quer ver mais opções? 😊" (se tem_mais = true)
-- ZERO texto explicativo entre os comércios
-- ZERO texto depois da pergunta final
+Exemplo COM distância (quando distancia_km vier preenchido):
+📍 *Farmácia Popular* · 📏 a 0.4 km de você
+📱 WhatsApp: (91) 99999-0000
+🔗 https://www.zappicidadebarcarena.com.br/c/farmacia-popular
+
+Exemplo SEM distância (quando distancia_km for null):
+📍 *Farmácia Popular*
+📱 WhatsApp: (91) 99999-0000
+🔗 https://www.zappicidadebarcarena.com.br/c/farmacia-popular
+
+Exemplo SEM WhatsApp (quando whatsapp for null):
+📍 *Farmácia Popular*
+🔗 https://www.zappicidadebarcarena.com.br/c/farmacia-popular
+
+REGRAS ABSOLUTAS — nunca quebre estas regras:
+1. A linha 🔗 com o link é OBRIGATÓRIA em 100% dos comércios — NUNCA omita
+2. A linha 📱 só aparece se whatsapp não for null
+3. A linha 📏 só aparece se distancia_km não for null
+4. ZERO texto entre os comércios da lista
+5. Introdução: máximo 1 linha curta (ex: "Aqui estão opções de farmácia 👇")
+6. Após a lista: apenas "Quer ver mais opções? 😊" (somente se tem_mais = true)
 
 **REGRAS DE EXIBIÇÃO:**
 - Mostre SEMPRE 5 resultados por vez (ou menos se não houver mais)
