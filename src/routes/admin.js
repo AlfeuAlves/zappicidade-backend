@@ -160,6 +160,24 @@ async function adminRoutes(fastify) {
     return { data: data || [], total: count || 0 }
   })
 
+  // ── GET /admin/usuarios ───────────────────────────────────
+  fastify.get('/usuarios', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { page = 1, limit = 50, busca } = req.query
+    const offset = (parseInt(page) - 1) * parseInt(limit)
+
+    let query = supabaseAdmin
+      .from('usuarios_cidadaos')
+      .select('id, whatsapp, nome, bairro, total_interacoes, primeira_interacao, ultima_interacao, ativo, bloqueado', { count: 'exact' })
+      .order('ultima_interacao', { ascending: false })
+      .range(offset, offset + parseInt(limit) - 1)
+
+    if (busca) query = query.ilike('whatsapp', `%${busca}%`)
+
+    const { data, count, error } = await query
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { data: data || [], total: count || 0 }
+  })
+
   // ── GET /admin/leads ──────────────────────────────────────
   fastify.get('/leads', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { page = 1, limit = 30 } = req.query
