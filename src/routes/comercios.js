@@ -14,10 +14,10 @@ async function comerciosRoutes(fastify) {
           cidade:     { type: 'string' },
           categoria:  { type: 'string' },
           bairro:     { type: 'string' },
-          aberto:     { type: 'boolean' },
-          destaque:   { type: 'boolean' },
-          verificado: { type: 'boolean' },
-          busca:      { type: 'string' },
+          aberto:        { type: 'boolean' },
+          tem_whatsapp:  { type: 'boolean' },
+          plano_pago:    { type: 'boolean' },
+          busca:         { type: 'string' },
           lat:        { type: 'number' },
           lng:        { type: 'number' },
           raio_km:    { type: 'number' },
@@ -29,43 +29,35 @@ async function comerciosRoutes(fastify) {
   }, async (req, reply) => {
     const {
       cidade, categoria, bairro, aberto,
-      destaque, verificado, busca,
-      lat, lng, raio_km = 5,
-      page = 1, limit = 20
+      tem_whatsapp, plano_pago,
+      busca, page = 1, limit = 20
     } = req.query
 
-    const offset = (page - 1) * limit
-
-    let query = supabase
-      .from('vw_comercios_publicos')
-      .select('*', { count: 'exact' })
-      .eq('status_operacional', 'ativo')
-      .range(offset, offset + limit - 1)
-      .order('destaque', { ascending: false })
-      .order('verificado', { ascending: false })
-      .order('avaliacao', { ascending: false })
-
-    if (cidade)     query = query.ilike('cidade_nome', `%${cidade}%`)
-    if (categoria)  query = query.eq('categoria_slug', categoria)
-    if (bairro)     query = query.ilike('bairro', `%${bairro}%`)
-    if (aberto)     query = query.eq('aberto_agora', true)
-    if (destaque)   query = query.eq('destaque', true)
-    if (verificado) query = query.eq('verificado', true)
-    if (busca)      query = query.ilike('nome', `%${busca}%`)
-
-    const { data, error, count } = await query
+    const { data, error } = await supabase.rpc('buscar_comercios', {
+      p_termo:         busca        || null,
+      p_categoria:     categoria    || null,
+      p_bairro:        bairro       || null,
+      p_cidade:        cidade       || null,
+      p_aberto:        aberto       ?? null,
+      p_tem_whatsapp:  tem_whatsapp ?? null,
+      p_plano_pago:    plano_pago   ?? null,
+      p_page:          Number(page),
+      p_limit:         Number(limit)
+    })
 
     if (error) {
       return reply.status(500).send({ erro: 'Erro ao buscar comércios', detalhe: error.message })
     }
 
+    const total = data?.[0]?.total_count ?? 0
+
     return {
       data,
       meta: {
-        total: count,
-        page,
-        limit,
-        paginas: Math.ceil(count / limit)
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        paginas: Math.ceil(total / limit)
       }
     }
   })
