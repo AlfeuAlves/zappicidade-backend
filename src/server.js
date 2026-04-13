@@ -18,11 +18,13 @@ fastify.register(require('@fastify/cors'), {
   origin: (origin, cb) => {
     if (!origin) return cb(null, true) // curl / server-to-server
     const allowed = [
-      /^http:\/\/localhost:\d+$/,      // qualquer porta localhost
+      /^http:\/\/localhost:\d+$/,               // qualquer porta localhost
       /\.vitrinelocal\.com\.br$/,
       /\.zappicidade\.com\.br$/,
-      /\.vercel\.app$/,               // deploys do Vercel
-      /\.railway\.app$/,              // deploys do Railway
+      /^https?:\/\/(www\.)?zappicidadebarcarena\.com\.br$/, // domínio principal
+      /\.zappicidadebarcarena\.com\.br$/,       // subdomínios (painel, api)
+      /\.vercel\.app$/,                         // deploys do Vercel
+      /\.railway\.app$/,                        // deploys do Railway
     ]
     cb(null, allowed.some(r => r.test(origin)))
   },
