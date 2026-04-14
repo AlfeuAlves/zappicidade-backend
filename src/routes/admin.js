@@ -516,13 +516,72 @@ async function adminRoutes(fastify) {
 
   // ── GET /admin/categorias ─────────────────────────────────────
   fastify.get('/categorias', { preHandler: autenticarAdmin }, async (req, reply) => {
-    const { data, error } = await supabaseAdmin
+    const { todas } = req.query
+    let query = supabaseAdmin
       .from('categorias')
-      .select('id, nome, slug, icone')
-      .eq('ativo', true)
-      .order('nome')
+      .select('id, nome, slug, icone, ordem, ativo, tipo_google')
+      .order('ordem', { ascending: true })
+    if (!todas) query = query.eq('ativo', true)
+    const { data, error } = await query
     if (error) return reply.status(500).send({ erro: error.message })
     return data || []
+  })
+
+  // ── POST /admin/categorias ────────────────────────────────────
+  fastify.post('/categorias', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { nome, icone, tipo_google, ordem } = req.body || {}
+    if (!nome) return reply.status(400).send({ erro: 'Nome é obrigatório' })
+
+    const slug = nome
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    // Pega a maior ordem atual
+    const { data: maxOrdem } = await supabaseAdmin
+      .from('categorias').select('ordem').order('ordem', { ascending: false }).limit(1).single()
+
+    const { data, error } = await supabaseAdmin
+      .from('categorias')
+      .insert({ nome, slug, icone: icone || '🏪', tipo_google: tipo_google || null, ordem: ordem ?? ((maxOrdem?.ordem || 0) + 1), ativo: true })
+      .select('id, nome, slug, icone, ordem, ativo')
+      .single()
+
+    if (error) return reply.status(400).send({ erro: error.message })
+    return { ok: true, data }
+  })
+
+  // ── PUT /admin/categorias/:id ─────────────────────────────────
+  fastify.put('/categorias/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { nome, icone, tipo_google, ordem, ativo } = req.body || {}
+    const updates = {}
+    if (nome        !== undefined) updates.nome        = nome
+    if (icone       !== undefined) updates.icone       = icone
+    if (tipo_google !== undefined) updates.tipo_google = tipo_google || null
+    if (ordem       !== undefined) updates.ordem       = parseInt(ordem)
+    if (ativo       !== undefined) updates.ativo       = ativo
+
+    if (Object.keys(updates).length === 0) return reply.status(400).send({ erro: 'Nenhum campo para atualizar' })
+
+    const { error } = await supabaseAdmin.from('categorias').update(updates).eq('id', id)
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
+  // ── DELETE /admin/categorias/:id ──────────────────────────────
+  fastify.delete('/categorias/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    // Verifica se há comércios nessa categoria
+    const { count } = await supabaseAdmin
+      .from('comercios').select('*', { count: 'exact', head: true }).eq('categoria_id', id)
+    if (count && count > 0)
+      return reply.status(400).send({ erro: `Não é possível excluir: ${count} comércio(s) nessa categoria. Mova-os primeiro.` })
+
+    const { error } = await supabaseAdmin.from('categorias').delete().eq('id', id)
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
   })
 
   // ── GET /admin/categorias/revisar ────────────────────────────
