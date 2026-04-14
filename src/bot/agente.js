@@ -133,6 +133,7 @@ Use essa informação para interpretar "aberto agora", "hoje", "amanhã" correta
 - "bar", "bebida", "boteco", "happy hour", "cerveja" → categoria: "bares"
 - "internet", "provedor", "fibra", "banda larga", "wifi", "net", "claro net", "vivo fibra" → categoria: "internet"
 - "gás", "gas", "botijão", "GLP", "gás de cozinha", "distribuidora de gás" → categoria: "gas"
+- "posto de gasolina", "posto de combustível", "posto", "gasolina", "diesel", "abastecer", "etanol", "combustível" → categoria: "postos-combustivel"
 - "imobiliária", "imóvel", "aluguel", "comprar casa", "apartamento" → categoria: "imobiliarias"
 - "materiais de construção", "ferragens", "tinta", "cimento", "hardware" → categoria: "materiais-construcao"
 - "eletrônico", "celular", "smartphone", "notebook", "informática", "assistência técnica" → categoria: "eletronicos"
