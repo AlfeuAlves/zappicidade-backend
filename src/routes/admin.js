@@ -394,6 +394,48 @@ async function adminRoutes(fastify) {
     return { ok: true }
   })
 
+  // ── POST /admin/comercios ─────────────────────────────────────
+  fastify.post('/comercios', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { nome, bairro, endereco, telefone, whatsapp, categoria_id, maps_url, website, foto_capa_url, place_id } = req.body || {}
+    if (!nome) return reply.status(400).send({ erro: 'Nome é obrigatório' })
+
+    // Gera slug a partir do nome
+    const slug = nome
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 80)
+
+    // Busca cidade de Barcarena
+    const { data: cidade } = await supabaseAdmin.from('cidades').select('id').eq('nome', 'Barcarena').single()
+
+    const { data, error } = await supabaseAdmin
+      .from('comercios')
+      .insert({
+        nome, slug, bairro: bairro || null, endereco: endereco || null,
+        telefone: telefone || null, whatsapp: whatsapp || null,
+        categoria_id: categoria_id || null, maps_url: maps_url || null,
+        website: website || null, foto_capa_url: foto_capa_url || null,
+        place_id: place_id || null,
+        cidade_id: cidade?.id || null,
+        status_operacional: 'ativo', verificado: false, destaque: false
+      })
+      .select('id, nome, slug')
+      .single()
+
+    if (error) return reply.status(400).send({ erro: error.message })
+    return { ok: true, data }
+  })
+
+  // ── DELETE /admin/comercios/:id ───────────────────────────────
+  fastify.delete('/comercios/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { error } = await supabaseAdmin.from('comercios').delete().eq('id', id)
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
   // ── POST /admin/comercios/:id/enriquecer ─────────────────────
   fastify.post('/comercios/:id/enriquecer', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
