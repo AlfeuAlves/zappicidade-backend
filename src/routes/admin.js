@@ -313,6 +313,85 @@ async function adminRoutes(fastify) {
     return { ok: true }
   })
 
+  // ── POST /admin/comercios/:id/enriquecer ─────────────────────
+  fastify.post('/comercios/:id/enriquecer', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const GOOGLE_KEY = process.env.GOOGLE_PLACES_API_KEY
+    if (!GOOGLE_KEY) return reply.status(500).send({ erro: 'GOOGLE_PLACES_API_KEY não configurada' })
+
+    // Busca comércio
+    const { data: comercio, error: errBusca } = await supabaseAdmin
+      .from('comercios')
+      .select('id, nome, place_id, horarios, endereco, telefone, foto_capa_url, website')
+      .eq('id', id)
+      .single()
+
+    if (errBusca || !comercio) return reply.status(404).send({ erro: 'Comércio não encontrado' })
+    if (!comercio.place_id) return reply.status(400).send({ erro: 'Este comércio não tem Place ID cadastrado' })
+
+    // Chama Google Places Details API
+    const fields = 'formatted_address,formatted_phone_number,opening_hours,photos,website'
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${comercio.place_id}&fields=${fields}&language=pt-BR&key=${GOOGLE_KEY}`
+
+    let detalhes
+    try {
+      const res = await fetch(url)
+      const json = await res.json()
+      if (json.status !== 'OK') return reply.status(400).send({ erro: `Google retornou: ${json.status}` })
+      detalhes = json.result
+    } catch (e) {
+      return reply.status(500).send({ erro: 'Erro ao consultar Google Places: ' + e.message })
+    }
+
+    // Monta updates — só campos vazios
+    const updates = {}
+
+    if (!comercio.horarios || Object.keys(comercio.horarios).length === 0) {
+      if (detalhes.opening_hours?.periods) {
+        const DIAS = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado']
+        const horarios = {}
+        for (const period of detalhes.opening_hours.periods) {
+          const dia = DIAS[period.open?.day]
+          if (!dia) continue
+          horarios[dia] = {
+            aberto:  `${period.open.time.slice(0,2)}:${period.open.time.slice(2)}`,
+            fechado: period.close ? `${period.close.time.slice(0,2)}:${period.close.time.slice(2)}` : '23:59'
+          }
+        }
+        if (Object.keys(horarios).length > 0) updates.horarios = horarios
+      }
+    }
+
+    if (!comercio.endereco && detalhes.formatted_address) {
+      updates.endereco = detalhes.formatted_address.replace(/, Brasil$/, '').trim()
+    }
+
+    if (!comercio.telefone && detalhes.formatted_phone_number) {
+      updates.telefone = detalhes.formatted_phone_number
+    }
+
+    if (!comercio.foto_capa_url && detalhes.photos?.[0]?.photo_reference) {
+      updates.foto_capa_url = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${detalhes.photos[0].photo_reference}&key=${GOOGLE_KEY}`
+    }
+
+    if (!comercio.website && detalhes.website) {
+      updates.website = detalhes.website
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return { ok: true, atualizados: [], mensagem: 'Nenhum campo novo encontrado no Google' }
+    }
+
+    const { error: errUpdate } = await supabaseAdmin
+      .from('comercios')
+      .update(updates)
+      .eq('id', id)
+
+    if (errUpdate) return reply.status(500).send({ erro: errUpdate.message })
+
+    return { ok: true, atualizados: Object.keys(updates), dados: updates }
+  })
+
   // ── GET /admin/categorias ─────────────────────────────────────
   fastify.get('/categorias', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { data, error } = await supabaseAdmin
