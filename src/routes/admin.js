@@ -324,6 +324,50 @@ async function adminRoutes(fastify) {
     return data || []
   })
 
+  // ── GET /admin/categorias/revisar ────────────────────────────
+  // Retorna comércios de uma categoria para revisão, um por vez
+  fastify.get('/categorias/revisar', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { categoria_slug, page = 1, limit = 1 } = req.query
+    if (!categoria_slug) return reply.status(400).send({ erro: 'categoria_slug obrigatório' })
+
+    const offset = (parseInt(page) - 1) * parseInt(limit)
+
+    // Busca o id da categoria
+    const { data: cat } = await supabaseAdmin
+      .from('categorias')
+      .select('id, nome, icone')
+      .eq('slug', categoria_slug)
+      .single()
+
+    if (!cat) return reply.status(404).send({ erro: 'Categoria não encontrada' })
+
+    const { data, count, error } = await supabaseAdmin
+      .from('comercios')
+      .select('id, nome, endereco, bairro, telefone, maps_url', { count: 'exact' })
+      .eq('categoria_id', cat.id)
+      .eq('status_operacional', 'ativo')
+      .order('nome', { ascending: true })
+      .range(offset, offset + parseInt(limit) - 1)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { data: data || [], total: count || 0, categoria: cat }
+  })
+
+  // ── PUT /admin/categorias/revisar/:id ────────────────────────
+  fastify.put('/categorias/revisar/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { categoria_id } = req.body || {}
+    if (!categoria_id) return reply.status(400).send({ erro: 'categoria_id obrigatório' })
+
+    const { error } = await supabaseAdmin
+      .from('comercios')
+      .update({ categoria_id })
+      .eq('id', id)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
   // ── GET /admin/verificar/:token (link via WhatsApp — legado) ──
   fastify.get('/verificar/:token', async (req, reply) => {
     const { token } = req.params
