@@ -372,7 +372,7 @@ async function adminRoutes(fastify) {
   // ── PUT /admin/comercios/:id ──────────────────────────────────
   fastify.put('/comercios/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
-    const allowed = ['nome', 'endereco', 'bairro', 'telefone', 'whatsapp', 'status_operacional', 'verificado', 'destaque', 'maps_url', 'website', 'foto_capa_url', 'categoria_id', 'place_id', 'horarios']
+    const allowed = ['nome', 'endereco', 'bairro', 'telefone', 'whatsapp', 'status_operacional', 'verificado', 'destaque', 'maps_url', 'website', 'foto_capa_url', 'categoria_id', 'place_id', 'horarios', 'funciona_24h']
 
     const updates = {}
     for (const key of allowed) {
