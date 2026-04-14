@@ -3,6 +3,17 @@
 // ============================================================
 const { supabaseAdmin } = require('../config/supabase')
 const { sendText }      = require('../bot/zapi')
+const https             = require('https')
+
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, res => {
+      let data = ''
+      res.on('data', chunk => data += chunk)
+      res.on('end', () => { try { resolve(JSON.parse(data)) } catch(e) { reject(e) } })
+    }).on('error', reject)
+  })
+}
 
 // ── Middleware admin ──────────────────────────────────────────
 async function autenticarAdmin(req, reply) {
@@ -331,12 +342,11 @@ async function adminRoutes(fastify) {
 
     // Chama Google Places Details API
     const fields = 'formatted_address,formatted_phone_number,opening_hours,photos,website'
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${comercio.place_id}&fields=${fields}&language=pt-BR&key=${GOOGLE_KEY}`
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(comercio.place_id)}&fields=${fields}&language=pt-BR&key=${GOOGLE_KEY}`
 
     let detalhes
     try {
-      const res = await fetch(url)
-      const json = await res.json()
+      const json = await httpsGet(url)
       if (json.status !== 'OK') return reply.status(400).send({ erro: `Google retornou: ${json.status}` })
       detalhes = json.result
     } catch (e) {
