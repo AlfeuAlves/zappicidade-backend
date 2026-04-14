@@ -15,21 +15,37 @@ const zapi   = require('../bot/zapi')
 const sessoes = require('../bot/sessoes')
 const { supabaseAdmin } = require('../config/supabase')
 
+// Normaliza telefone: sempre com 55 na frente (padrão Z-API)
+function normalizarTelefone(tel) {
+  const n = String(tel).replace(/\D/g, '')
+  if (n.startsWith('55') && n.length >= 12) return n
+  return '55' + n
+}
+
 // Registra/atualiza usuário no banco (fire-and-forget — não bloqueia o bot)
 function registrarUsuario(telefone) {
+  const tel = normalizarTelefone(telefone)
+
   supabaseAdmin
     .from('usuarios_cidadaos')
     .upsert(
-      { whatsapp: telefone, ultima_interacao: new Date().toISOString() },
+      { whatsapp: tel, ultima_interacao: new Date().toISOString() },
       { onConflict: 'whatsapp', ignoreDuplicates: false }
     )
     .then(({ error }) => {
-      if (!error) {
-        // Incrementa contador de interações
-        supabaseAdmin.rpc('incrementar_interacoes', { p_whatsapp: telefone }).catch(() => {})
+      if (error) {
+        console.error('[registrarUsuario] upsert erro:', error.message, '| tel:', tel)
+        return
       }
+      // Incrementa contador de interações
+      supabaseAdmin
+        .rpc('incrementar_interacoes', { p_whatsapp: tel })
+        .then(({ error: rpcErr }) => {
+          if (rpcErr) console.error('[registrarUsuario] rpc erro:', rpcErr.message, '| tel:', tel)
+        })
+        .catch(e => console.error('[registrarUsuario] rpc catch:', e.message))
     })
-    .catch(() => {}) // nunca deixa falhar o fluxo principal
+    .catch(e => console.error('[registrarUsuario] catch:', e.message))
 }
 
 async function webhookRoutes(fastify) {
@@ -54,10 +70,11 @@ async function webhookRoutes(fastify) {
       return reply.status(200).send({ ok: true, ignorado: `tipo:${payload.type}` })
     }
 
-    const telefone = payload.phone
-    if (!telefone) {
+    const telefoneRaw = payload.phone
+    if (!telefoneRaw) {
       return reply.status(200).send({ ok: true, ignorado: 'sem_telefone' })
     }
+    const telefone = normalizarTelefone(telefoneRaw)
 
     // ── Registra usuário no banco (toda mensagem válida) ──────
     registrarUsuario(telefone)
