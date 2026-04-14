@@ -178,6 +178,56 @@ async function adminRoutes(fastify) {
     return { data: data || [], total: count || 0 }
   })
 
+  // ── POST /admin/reengajamento ─────────────────────────────
+  fastify.post('/reengajamento', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { mensagem } = req.body || {}
+    if (!mensagem || mensagem.trim().length < 10) {
+      return reply.status(400).send({ erro: 'Mensagem muito curta' })
+    }
+
+    // Busca todos os usuários inativos (0 interações), ativos e não bloqueados
+    const { data: usuarios, error } = await supabaseAdmin
+      .from('usuarios_cidadaos')
+      .select('whatsapp')
+      .eq('total_interacoes', 0)
+      .eq('ativo', true)
+      .eq('bloqueado', false)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+    if (!usuarios || usuarios.length === 0) {
+      return { ok: true, total: 0, enviados: 0, falhas: 0 }
+    }
+
+    let enviados = 0
+    let falhas   = 0
+
+    for (const u of usuarios) {
+      try {
+        await sendText(u.whatsapp, mensagem.trim())
+        enviados++
+        // Pausa de 800ms entre envios para não ser bloqueado
+        await new Promise(r => setTimeout(r, 800))
+      } catch (e) {
+        falhas++
+      }
+    }
+
+    return { ok: true, total: usuarios.length, enviados, falhas }
+  })
+
+  // ── GET /admin/reengajamento/preview ─────────────────────────
+  fastify.get('/reengajamento/preview', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { count, error } = await supabaseAdmin
+      .from('usuarios_cidadaos')
+      .select('*', { count: 'exact', head: true })
+      .eq('total_interacoes', 0)
+      .eq('ativo', true)
+      .eq('bloqueado', false)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { total_inativos: count || 0 }
+  })
+
   // ── GET /admin/leads ──────────────────────────────────────
   fastify.get('/leads', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { page = 1, limit = 30 } = req.query
