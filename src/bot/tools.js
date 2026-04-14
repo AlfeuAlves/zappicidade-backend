@@ -139,15 +139,17 @@ function semAcento(str) {
 async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp, plano_pago, limit = 5, offset = 0 }, localizacao = null) {
   limit = Math.min(limit, 10)
 
-  // Se tiver GPS e não tiver bairro, busca mais resultados para reordenar por proximidade
-  const temGPS   = localizacao?.lat && localizacao?.lng
-  const limitRPC = temGPS ? Math.min(limit * 4, 40) : limit
-  const page     = Math.floor(offset / limitRPC) + 1
+  const temGPS = localizacao?.lat && localizacao?.lng
+
+  // Com GPS: busca TODOS os resultados da categoria para poder ordenar por proximidade real
+  // Sem GPS: busca só o necessário (paginação normal)
+  const limitRPC = temGPS ? 200 : limit
+  const page     = temGPS ? 1 : (Math.floor(offset / limit) + 1)
 
   const { data, error } = await supabase.rpc('buscar_comercios', {
     p_termo:        busca        || null,
     p_categoria:    categoria    || null,
-    p_bairro:       bairro       || (localizacao?.bairro) || null,
+    p_bairro:       bairro       || null,   // com GPS não filtra por bairro — distância cuida disso
     p_cidade:       null,
     p_aberto:       aberto       ?? null,
     p_tem_whatsapp: tem_whatsapp ?? null,
@@ -176,7 +178,7 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
         if (b.aberto_agora !== a.aberto_agora) return (b.aberto_agora ? 1 : 0) - (a.aberto_agora ? 1 : 0)
         return a.distancia_km - b.distancia_km
       })
-      .slice(offset % limitRPC, (offset % limitRPC) + limit)
+      .slice(offset, offset + limit)
   }
 
   const total   = data[0]?.total_count ?? data.length
@@ -188,7 +190,7 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
     tem_mais: temMais,
     proximo_offset: temMais ? offset + limit : null,
     localizacao_usada: temGPS ? 'gps' : (localizacao?.bairro ? 'bairro' : null),
-    comercios: resultados.slice(0, limit).map(c => ({
+    comercios: resultados.map(c => ({
       nome:         c.nome,
       slug:         c.slug,
       categoria:    c.categoria_nome,
