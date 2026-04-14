@@ -291,7 +291,7 @@ async function adminRoutes(fastify) {
 
     const { data, error } = await supabaseAdmin
       .from('comercios')
-      .select('id, nome, slug, endereco, bairro, telefone, whatsapp, status_operacional, verificado, destaque, avaliacao, total_avaliacoes, categoria_id, maps_url, website, foto_capa_url, place_id')
+      .select('id, nome, slug, endereco, bairro, telefone, whatsapp, status_operacional, verificado, destaque, avaliacao, total_avaliacoes, categoria_id, maps_url, website, foto_capa_url, place_id, horarios')
       .eq('id', id)
       .single()
 
@@ -302,7 +302,7 @@ async function adminRoutes(fastify) {
   // ── PUT /admin/comercios/:id ──────────────────────────────────
   fastify.put('/comercios/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
-    const allowed = ['nome', 'endereco', 'bairro', 'telefone', 'whatsapp', 'status_operacional', 'verificado', 'destaque', 'maps_url', 'website', 'foto_capa_url', 'categoria_id', 'place_id']
+    const allowed = ['nome', 'endereco', 'bairro', 'telefone', 'whatsapp', 'status_operacional', 'verificado', 'destaque', 'maps_url', 'website', 'foto_capa_url', 'categoria_id', 'place_id', 'horarios']
 
     const updates = {}
     for (const key of allowed) {
