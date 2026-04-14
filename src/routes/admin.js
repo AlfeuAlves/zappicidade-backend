@@ -153,6 +153,76 @@ async function adminRoutes(fastify) {
     return { ok: true }
   })
 
+  // ── GET /admin/comerciantes/:id ──────────────────────────
+  fastify.get('/comerciantes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { data, error } = await supabaseAdmin
+      .from('comerciantes')
+      .select('id, nome_completo, email, telefone, cpf, whatsapp, ativo, status_verificacao, comercio_id, criado_em, ultimo_acesso, comercios ( id, nome, slug )')
+      .eq('id', id)
+      .single()
+    if (error || !data) return reply.status(404).send({ erro: 'Não encontrado' })
+    return data
+  })
+
+  // ── POST /admin/comerciantes ──────────────────────────────
+  fastify.post('/comerciantes', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { nome_completo, email, telefone, cpf, whatsapp, senha, comercio_id } = req.body || {}
+    if (!nome_completo || !email) return reply.status(400).send({ erro: 'Nome e email são obrigatórios' })
+
+    const bcrypt = require('bcrypt')
+    const senha_hash = senha ? await bcrypt.hash(senha, 10) : await bcrypt.hash('zappi2024', 10)
+
+    const { data, error } = await supabaseAdmin
+      .from('comerciantes')
+      .insert({
+        nome_completo, email, telefone: telefone || null, cpf: cpf || null,
+        whatsapp: whatsapp || null, senha_hash,
+        comercio_id: comercio_id || null,
+        status_verificacao: 'aprovado', ativo: true, email_verificado: true
+      })
+      .select('id, nome_completo, email')
+      .single()
+
+    if (error) return reply.status(400).send({ erro: error.message })
+    return { ok: true, data }
+  })
+
+  // ── PUT /admin/comerciantes/:id ───────────────────────────
+  fastify.put('/comerciantes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { nome_completo, email, telefone, cpf, whatsapp, senha, ativo, status_verificacao, comercio_id } = req.body || {}
+
+    const updates = {}
+    if (nome_completo    !== undefined) updates.nome_completo    = nome_completo
+    if (email            !== undefined) updates.email            = email
+    if (telefone         !== undefined) updates.telefone         = telefone || null
+    if (cpf              !== undefined) updates.cpf              = cpf || null
+    if (whatsapp         !== undefined) updates.whatsapp         = whatsapp || null
+    if (ativo            !== undefined) updates.ativo            = ativo
+    if (status_verificacao !== undefined) updates.status_verificacao = status_verificacao
+    if (comercio_id      !== undefined) updates.comercio_id      = comercio_id || null
+
+    if (senha) {
+      const bcrypt = require('bcrypt')
+      updates.senha_hash = await bcrypt.hash(senha, 10)
+    }
+
+    if (Object.keys(updates).length === 0) return reply.status(400).send({ erro: 'Nenhum campo para atualizar' })
+
+    const { error } = await supabaseAdmin.from('comerciantes').update(updates).eq('id', id)
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
+  // ── DELETE /admin/comerciantes/:id ────────────────────────
+  fastify.delete('/comerciantes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { error } = await supabaseAdmin.from('comerciantes').delete().eq('id', id)
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
   // ── GET /admin/comercios ──────────────────────────────────
   fastify.get('/comercios', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { busca, page = 1, limit = 30 } = req.query
