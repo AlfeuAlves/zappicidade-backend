@@ -90,10 +90,10 @@ fastify.setErrorHandler((error, req, reply) => {
     return reply.status(429).send({ erro: 'Muitas requisições. Aguarde um momento.' })
   }
 
+  // DEBUG TEMPORÁRIO — expõe erro real para diagnóstico
   reply.status(error.statusCode || 500).send({
-    erro: process.env.NODE_ENV === 'production'
-      ? 'Erro interno do servidor'
-      : error.message
+    erro: error.message || 'Erro interno do servidor',
+    _code: error.code
   })
 })
 
