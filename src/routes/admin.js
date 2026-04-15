@@ -650,33 +650,41 @@ async function adminRoutes(fastify) {
   fastify.post('/comercios/:id/qrcode', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
 
-    // Garante que não existe outro QR para este comércio
-    const { data: existente } = await supabaseAdmin
-      .from('qrcodes')
-      .select('id, codigo, total_scans')
-      .eq('comercio_id', id)
-      .maybeSingle()
+    try {
+      // Garante que não existe outro QR para este comércio
+      const { data: existente, error: errExist } = await supabaseAdmin
+        .from('qrcodes')
+        .select('id, codigo, total_scans')
+        .eq('comercio_id', id)
+        .maybeSingle()
 
-    if (existente) {
-      const url        = `https://www.zappicidadebarcarena.com.br/qr/${existente.codigo}`
+      if (errExist) return reply.status(500).send({ erro: 'Erro ao buscar QR: ' + errExist.message })
+
+      if (existente) {
+        const url        = `https://www.zappicidadebarcarena.com.br/qr/${existente.codigo}`
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(url)}`
+        return reply.send({ qrcode: { ...existente, url, qr_image_url: qrImageUrl } })
+      }
+
+      // Gera código único de 8 caracteres (hex maiúsculo)
+      const codigo = crypto.randomBytes(4).toString('hex').toUpperCase()
+      const url    = `https://www.zappicidadebarcarena.com.br/qr/${codigo}`
+
+      const { data: qr, error } = await supabaseAdmin
+        .from('qrcodes')
+        .insert({ comercio_id: id, codigo, url_destino: url, total_scans: 0 })
+        .select()
+        .single()
+
+      if (error) return reply.status(500).send({ erro: 'Erro ao criar QR: ' + error.message })
+
       const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(url)}`
-      return reply.send({ qrcode: { ...existente, url, qr_image_url: qrImageUrl } })
+      return reply.status(201).send({ qrcode: { ...qr, url, qr_image_url: qrImageUrl } })
+
+    } catch (e) {
+      fastify.log.error('POST qrcode error:', e)
+      return reply.status(500).send({ erro: 'Exceção: ' + e.message })
     }
-
-    // Gera código único de 8 caracteres (hex maiúsculo)
-    const codigo = crypto.randomBytes(4).toString('hex').toUpperCase()
-    const url    = `https://www.zappicidadebarcarena.com.br/qr/${codigo}`
-
-    const { data: qr, error } = await supabaseAdmin
-      .from('qrcodes')
-      .insert({ comercio_id: id, codigo, url_destino: url, total_scans: 0 })
-      .select()
-      .single()
-
-    if (error) return reply.status(500).send({ erro: error.message })
-
-    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(url)}`
-    return reply.status(201).send({ qrcode: { ...qr, url, qr_image_url: qrImageUrl } })
   })
 
   // ── GET /admin/verificar/:token (link via WhatsApp — legado) ──
