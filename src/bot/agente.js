@@ -196,14 +196,27 @@ async function processar(telefone, textUsuario) {
   while (iteracoes < MAX_ITER) {
     iteracoes++
 
-    const response = await client.messages.create({
-      model:       MODEL,
-      max_tokens:  MAX_TOKENS,
-      temperature: TEMPERATURE,
-      system:      buildSystemPrompt(localizacao),
-      tools:       TOOLS,
-      messages:    sessao.historico
-    })
+    let response
+    try {
+      response = await client.messages.create({
+        model:       MODEL,
+        max_tokens:  MAX_TOKENS,
+        temperature: TEMPERATURE,
+        system:      buildSystemPrompt(localizacao),
+        tools:       TOOLS,
+        messages:    sessao.historico
+      })
+    } catch (apiErr) {
+      // Loga o erro real para diagnóstico nos logs do Railway
+      console.error('[agente] Erro na API Anthropic:', {
+        tipo:    apiErr.constructor?.name,
+        status:  apiErr.status,
+        message: apiErr.message,
+        model:   MODEL,
+        apiKey:  process.env.ANTHROPIC_API_KEY ? `${process.env.ANTHROPIC_API_KEY.slice(0,10)}...` : 'NÃO DEFINIDA'
+      })
+      throw apiErr  // re-lança para o webhook logar e enviar fallback
+    }
 
     // ── Caso 1: resposta de texto final ─────────────────────
     if (response.stop_reason === 'end_turn') {
