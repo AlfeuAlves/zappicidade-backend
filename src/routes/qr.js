@@ -22,7 +22,7 @@ async function qrRoutes(fastify) {
         .maybeSingle()
 
       if (error || !qr) {
-        return reply.redirect(302, SITE_HOME)
+        return reply.status(302).header('Location', SITE_HOME).send()
       }
 
       // Busca o nome do comércio separadamente
@@ -51,11 +51,11 @@ async function qrRoutes(fastify) {
       const texto = `Oi Zappi! Quero saber sobre ${nomeComercio}`
       const waUrl = `https://wa.me/${WHATSAPP_BOT}?text=${encodeURIComponent(texto)}`
 
-      return reply.redirect(302, waUrl)
+      return reply.status(302).header('Location', waUrl).send()
 
     } catch (e) {
-      fastify.log.error('QR redirect error:', e)
-      return reply.redirect(302, SITE_HOME)
+      fastify.log.error('QR redirect error:', e.message)
+      return reply.status(302).header('Location', SITE_HOME).send()
     }
   })
 }
