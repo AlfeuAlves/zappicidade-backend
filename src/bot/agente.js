@@ -197,6 +197,7 @@ Sinais de que JÁ É específico (não perguntar, buscar direto):
 - "advogado", "advocacia", "escritório de advocacia", "OAB", "jurídico" → categoria: "advocacia"
 - "pintor", "pintura de casa", "pintura predial" → categoria: "pintores"
 - "encanador", "encanamento", "hidráulica", "vazamento" → categoria: "encanadores"
+- "escola", "colégio", "ensino", "educação", "educacional", "curso", "creche", "pré-escola", "infantil", "fundamental", "médio", "senai", "faculdade", "técnico", "pré-vestibular" → categoria: "escolas"
 - "concessionária", "carro novo", "comprar carro", "financiamento de veículo" → categoria: "concessionarias"
 - "cinema", "filme", "sessão de cinema" → categoria: "cinemas"
 Usar categoria é SEMPRE mais preciso do que buscar por texto.
