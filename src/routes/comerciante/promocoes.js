@@ -64,7 +64,7 @@ async function promocoesRoutes(fastify) {
         properties: {
           titulo:               { type: 'string', minLength: 3 },
           descricao:            { type: 'string' },
-          tipo:                 { type: 'string', enum: ['desconto', 'frete_gratis', 'brinde', 'combo', 'outro'] },
+          tipo:                 { type: 'string', enum: ['desconto', 'frete_gratis', 'brinde', 'combo', 'outro', 'venda_rapida'] },
           preco_de:             { type: 'number' },
           preco_por:            { type: 'number' },
           percentual_desconto:  { type: 'number', minimum: 1, maximum: 100 },
@@ -80,6 +80,15 @@ async function promocoesRoutes(fastify) {
 
     if (!comercio_id) {
       return reply.status(400).send({ erro: 'Nenhum comércio vinculado à sua conta' })
+    }
+
+    // Verifica aprovação do admin
+    const { status_verificacao } = req.comerciante
+    if (status_verificacao !== 'aprovado') {
+      return reply.status(403).send({
+        erro: 'Sua conta ainda não foi aprovada pelo administrador. Aguarde a aprovação para criar promoções.',
+        pendente_aprovacao: true
+      })
     }
 
     // Verifica plano — Pro ou superior para criar promoções

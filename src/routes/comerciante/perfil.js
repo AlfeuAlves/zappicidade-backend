@@ -16,7 +16,7 @@ async function perfilRoutes(fastify) {
     // Busca dados do comerciante
     const { data: comerciante } = await supabaseAdmin
       .from('comerciantes')
-      .select('id, nome_completo, email, whatsapp, ativo, criado_em, ultimo_acesso')
+      .select('id, nome_completo, email, whatsapp, ativo, status_verificacao, criado_em, ultimo_acesso')
       .eq('id', id)
       .single()
 

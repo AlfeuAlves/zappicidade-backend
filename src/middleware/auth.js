@@ -10,7 +10,7 @@ async function autenticar(req, reply) {
     // Verifica se o comerciante ainda existe e está ativo
     const { data: comerciante, error } = await supabaseAdmin
       .from('comerciantes')
-      .select('id, email, ativo, comercio_id')
+      .select('id, email, ativo, comercio_id, status_verificacao')
       .eq('id', req.user.sub)
       .single()
 
