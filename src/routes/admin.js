@@ -220,18 +220,24 @@ async function adminRoutes(fastify) {
   fastify.delete('/comerciantes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
     try {
-      // Apaga registros dependentes antes (FK sem CASCADE)
-      const { error: errAss } = await supabaseAdmin.from('assinaturas').delete().eq('comerciante_id', id)
-      if (errAss) console.error('[DELETE comerciante] erro assinaturas:', errAss.message)
-
+      await supabaseAdmin.from('assinaturas').delete().eq('comerciante_id', id)
       const { error } = await supabaseAdmin.from('comerciantes').delete().eq('id', id)
-      if (error) {
-        console.error('[DELETE comerciante] erro Supabase:', error.message, error.code, error.details)
-        return reply.status(500).send({ erro: error.message })
-      }
+      if (error) return reply.status(500).send({ erro: error.message })
       return { ok: true }
     } catch (ex) {
-      console.error('[DELETE comerciante] exceção:', ex)
+      return reply.status(500).send({ erro: ex.message || 'Exceção desconhecida' })
+    }
+  })
+
+  // ── POST /admin/comerciantes/:id/excluir (fallback sem método DELETE) ──
+  fastify.post('/comerciantes/:id/excluir', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    try {
+      await supabaseAdmin.from('assinaturas').delete().eq('comerciante_id', id)
+      const { error } = await supabaseAdmin.from('comerciantes').delete().eq('id', id)
+      if (error) return reply.status(500).send({ erro: error.message })
+      return { ok: true }
+    } catch (ex) {
       return reply.status(500).send({ erro: ex.message || 'Exceção desconhecida' })
     }
   })
