@@ -166,7 +166,9 @@ Quando exibir os detalhes de um comércio específico, use este modelo:
 
 Se o campo "promocoes" vier com itens, adicione SEMPRE logo após o link:
 🎯 *Promoção ativa:* [titulo] — [percentual_desconto]% off
-💰 De R$ [preco_de] | Válido até [fim formatado em dd/mm/aaaa]
+💰 De R$ [preco_de] por *R$ [preco_por]* | Válido até [fim formatado em dd/mm/aaaa]
+
+Se preco_por for null mas percentual_desconto estiver disponível, calcule: preco_por = preco_de * (1 - percentual_desconto/100) e exiba o resultado.
 
 Se houver mais de uma promoção, liste todas. Se não houver promoções (lista vazia), não mencione o campo.
 
