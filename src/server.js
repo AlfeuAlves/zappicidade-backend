@@ -59,6 +59,7 @@ fastify.register(require('./routes/cidades'),   { prefix: '/cidades' })
 fastify.register(require('./routes/comercios'), { prefix: '/comercios' })
 fastify.register(require('./routes/leads'),       { prefix: '/leads' })
 fastify.register(require('./routes/comentarios'), { prefix: '/comentarios' })
+fastify.register(require('./routes/qr'),          { prefix: '/qr' })
 
 // ── Rotas do Bot WhatsApp ─────────────────────────────────────
 fastify.register(require('./routes/webhook'),   { prefix: '/webhook' })

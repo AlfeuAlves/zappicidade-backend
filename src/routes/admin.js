@@ -640,7 +640,7 @@ async function adminRoutes(fastify) {
 
     if (!qr) return reply.send({ qrcode: null })
 
-    const url        = `https://painel.zappicidadebarcarena.com.br/qr/${qr.codigo}`
+    const url        = `https://www.zappicidadebarcarena.com.br/qr/${qr.codigo}`
     const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(url)}`
     return reply.send({ qrcode: { ...qr, url, qr_image_url: qrImageUrl } })
   })
