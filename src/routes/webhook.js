@@ -10,8 +10,8 @@
 //   4. Envia resposta via zapi.sendText()
 // ============================================================
 
-const agente = require('../bot/agente')
-const zapi   = require('../bot/zapi')
+const agente  = require('../bot/agente')
+const zapi    = require('../bot/zapi')
 const sessoes = require('../bot/sessoes')
 const { supabaseAdmin } = require('../config/supabase')
 
@@ -157,23 +157,38 @@ _Ex: "farmácia aberta agora", "ponto de açaí no Centro", "restaurante"_`
   // GET /webhook/status — diagnóstico rápido
   fastify.get('/status', async (req, reply) => {
     const sessoes_ativas = sessoes.totalAtivas()
+    const monitor        = agente.getMonitor()
 
-    let whatsapp_status = 'não configurado'
+    let whatsapp_status = 'nao_configurado'
+    let whatsapp_ok     = false
     if (process.env.ZAPI_INSTANCE_ID && process.env.ZAPI_TOKEN) {
       try {
         const st = await zapi.getStatus()
-        whatsapp_status = st.connected ? 'conectado' : `desconectado (${st.status || 'unknown'})`
+        whatsapp_ok     = !!st.connected
+        whatsapp_status = st.connected ? 'conectado' : `desconectado`
       } catch (err) {
-        whatsapp_status = `erro: ${err.message}`
+        whatsapp_status = `erro`
       }
     }
 
+    // IA: considera OK se tem chave E último erro foi há mais de 10 min (ou nunca errou)
+    const ia_configurada = !!process.env.ANTHROPIC_API_KEY
+    const minutosSemErro = monitor.ultimoErro
+      ? (Date.now() - new Date(monitor.ultimoErro.ts).getTime()) / 60_000
+      : null
+    const ia_ok = ia_configurada && (minutosSemErro === null || minutosSemErro > 10)
+
     return {
-      bot:             'ZappiCidade Bot',
+      bot:              'ZappiCidade Bot',
       sessoes_ativas,
       whatsapp_status,
-      ia_configurada:  !!process.env.ANTHROPIC_API_KEY,
-      timestamp:       new Date().toISOString()
+      whatsapp_ok,
+      ia_configurada,
+      ia_ok,
+      ultimo_sucesso:   monitor.ultimoSucesso,
+      ultimo_erro:      monitor.ultimoErro,
+      erros_ultima_hora: monitor.errosUltimaHora,
+      timestamp:        new Date().toISOString()
     }
   })
 }

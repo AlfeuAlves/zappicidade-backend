@@ -17,6 +17,38 @@ const MODEL      = 'claude-haiku-4-5-20251001'
 const MAX_TOKENS = 900   // 5 comércios × ~3 linhas cada + intro + pergunta final
 const TEMPERATURE = 0   // Determinístico: mapeamento categoria sempre igual
 
+// ── Monitoramento de saúde ────────────────────────────────────
+const _monitor = {
+  ultimoSucesso:  null,   // ISO string
+  ultimoErro:     null,   // { ts, tipo, status, message }
+  errosUltimaHora: 0,
+  _erroHoraReset: Date.now(),
+}
+
+function _registrarSucesso() {
+  _monitor.ultimoSucesso = new Date().toISOString()
+}
+
+function _registrarErro(err) {
+  const agora = Date.now()
+  // Reseta contador a cada hora
+  if (agora - _monitor._erroHoraReset > 3600_000) {
+    _monitor.errosUltimaHora = 0
+    _monitor._erroHoraReset = agora
+  }
+  _monitor.errosUltimaHora++
+  _monitor.ultimoErro = {
+    ts:      new Date().toISOString(),
+    tipo:    err.constructor?.name || 'Error',
+    status:  err.status || null,
+    message: err.message
+  }
+}
+
+function getMonitor() {
+  return { ..._monitor }
+}
+
 // ── Prompt do sistema ────────────────────────────────────────
 
 // Injeta data/hora atual para o modelo saber quando é "agora"
@@ -215,6 +247,7 @@ async function processar(telefone, textUsuario) {
         model:   MODEL,
         apiKey:  process.env.ANTHROPIC_API_KEY ? `${process.env.ANTHROPIC_API_KEY.slice(0,10)}...` : 'NÃO DEFINIDA'
       })
+      _registrarErro(apiErr)
       throw apiErr  // re-lança para o webhook logar e enviar fallback
     }
 
@@ -225,6 +258,7 @@ async function processar(telefone, textUsuario) {
         .map(b => b.text)
         .join('')
 
+      _registrarSucesso()
       sessoes.addMensagem(telefone, 'assistant', response.content)
       return textoResposta
     }
@@ -260,4 +294,4 @@ async function processar(telefone, textUsuario) {
   return 'Desculpa, tive um probleminha aqui 😅 Pode repetir sua pergunta?'
 }
 
-module.exports = { processar }
+module.exports = { processar, getMonitor }
