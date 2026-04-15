@@ -52,6 +52,30 @@ async function sendText(telefone, mensagem) {
   return await res.json()
 }
 
+// ── Indicador "digitando..." ──────────────────────────────────
+
+async function sendTyping(telefone, duracaoMs = 5000) {
+  const numero = telefone.replace(/\D/g, '').replace(/^(?!55)/, '55')
+  try {
+    // Liga o "digitando"
+    await fetch(getUrl('send-presence'), {
+      method:  'POST',
+      headers: getHeaders(),
+      body:    JSON.stringify({ phone: numero, presence: 'composing' })
+    })
+    // Desliga automaticamente após duração (segurança — Z-API já apaga ao enviar msg)
+    setTimeout(async () => {
+      await fetch(getUrl('send-presence'), {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ phone: numero, presence: 'paused' })
+      }).catch(() => {})
+    }, duracaoMs)
+  } catch (_) {
+    // Não crítico — ignora se falhar
+  }
+}
+
 // ── Status da conexão WhatsApp ────────────────────────────────
 
 async function getStatus() {
@@ -61,4 +85,4 @@ async function getStatus() {
   return await res.json()
 }
 
-module.exports = { sendText, getStatus }
+module.exports = { sendText, sendTyping, getStatus }

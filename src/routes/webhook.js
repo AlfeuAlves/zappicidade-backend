@@ -130,6 +130,9 @@ _Ex: "farmácia aberta agora", "ponto de açaí no Centro", "restaurante"_`
     // ── Processa com o agente ──────────────────────────────
     fastify.log.info({ telefone, texto }, '📨 Mensagem recebida')
 
+    // Mostra "digitando..." enquanto a IA processa
+    zapi.sendTyping(telefone, 15000)
+
     try {
       const resposta = await agente.processar(telefone, texto.trim())
 
