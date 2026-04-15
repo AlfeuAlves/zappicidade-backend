@@ -229,17 +229,12 @@ async function adminRoutes(fastify) {
     }
   })
 
-  // ── POST /admin/comerciantes/:id/excluir (fallback sem método DELETE) ──
+  // ── POST /admin/comerciantes/:id/excluir ──────────────────
   fastify.post('/comerciantes/:id/excluir', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
-    try {
-      await supabaseAdmin.from('assinaturas').delete().eq('comerciante_id', id)
-      const { error } = await supabaseAdmin.from('comerciantes').delete().eq('id', id)
-      if (error) return reply.status(500).send({ erro: error.message })
-      return { ok: true }
-    } catch (ex) {
-      return reply.status(500).send({ erro: ex.message || 'Exceção desconhecida' })
-    }
+    // DIAGNÓSTICO: sem banco, só para confirmar se o endpoint chega a ser executado
+    console.log('[EXCLUIR] chegou id:', id)
+    return reply.status(200).send({ ok: true, _debug: 'endpoint-reached-v1', id })
   })
 
   // ── GET /admin/comercios ──────────────────────────────────
