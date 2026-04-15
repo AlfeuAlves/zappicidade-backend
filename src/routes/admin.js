@@ -4,6 +4,7 @@
 const { supabaseAdmin } = require('../config/supabase')
 const { sendText }      = require('../bot/zapi')
 const https             = require('https')
+const crypto            = require('crypto')
 
 function httpsGet(url) {
   return new Promise((resolve, reject) => {
@@ -657,15 +658,14 @@ async function adminRoutes(fastify) {
       .maybeSingle()
 
     if (existente) {
-      const url        = `https://painel.zappicidadebarcarena.com.br/qr/${existente.codigo}`
+      const url        = `https://www.zappicidadebarcarena.com.br/qr/${existente.codigo}`
       const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(url)}`
       return reply.send({ qrcode: { ...existente, url, qr_image_url: qrImageUrl } })
     }
 
     // Gera código único de 8 caracteres (hex maiúsculo)
-    const crypto = require('crypto')
     const codigo = crypto.randomBytes(4).toString('hex').toUpperCase()
-    const url    = `https://painel.zappicidadebarcarena.com.br/qr/${codigo}`
+    const url    = `https://www.zappicidadebarcarena.com.br/qr/${codigo}`
 
     const { data: qr, error } = await supabaseAdmin
       .from('qrcodes')
