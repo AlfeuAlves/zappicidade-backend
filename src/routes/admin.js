@@ -219,6 +219,8 @@ async function adminRoutes(fastify) {
   // ── DELETE /admin/comerciantes/:id ────────────────────────
   fastify.delete('/comerciantes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
+    // Apaga registros dependentes antes (FK sem CASCADE)
+    await supabaseAdmin.from('assinaturas').delete().eq('comerciante_id', id)
     const { error } = await supabaseAdmin.from('comerciantes').delete().eq('id', id)
     if (error) return reply.status(500).send({ erro: error.message })
     return { ok: true }
