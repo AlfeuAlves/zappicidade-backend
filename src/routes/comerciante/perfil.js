@@ -28,7 +28,7 @@ async function perfilRoutes(fastify) {
     const [comercioRes, assinaturaRes] = await Promise.all([
       supabaseAdmin
         .from('comercios')
-        .select('id, nome, slug, descricao, categoria_id, categorias(nome, slug, icone), cidade_id, cidades(nome, estado), telefone, whatsapp, email, website, endereco, bairro, horarios, foto_capa_url, verificado, destaque, status_operacional, avaliacao, total_avaliacoes')
+        .select('id, nome, slug, descricao, categoria_id, categorias(nome, slug, icone), cidade_id, cidades(nome, estado), telefone, whatsapp, email, website, endereco, bairro, horarios, foto_capa_url, fotos_galeria, verificado, destaque, status_operacional, avaliacao, total_avaliacoes')
         .eq('id', comercio_id)
         .single(),
 
