@@ -320,7 +320,6 @@ async function promocoesRoutes(fastify) {
       .from('mensagens_broadcast')
       .insert({
         comercio_id,
-        tipo: 'destaque_top',
         titulo: `Destaque TOP — ${comercio?.nome || 'Comércio'}`,
         mensagem: texto.trim(),
         total_destinatarios: count,
