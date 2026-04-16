@@ -3,6 +3,7 @@
 // ============================================================
 const { supabaseAdmin } = require('../../config/supabase')
 const { autenticar } = require('../../middleware/auth')
+const { sendText, sendImage } = require('../../lib/zapi')
 
 async function promocoesRoutes(fastify) {
 
@@ -259,8 +260,21 @@ async function promocoesRoutes(fastify) {
 
     if (error) return reply.status(500).send({ erro: error.message })
 
-    // TODO: Colocar na fila de envio WhatsApp (Evolution API / Z-API)
-    // await filaEnvio.add({ broadcast_id: broadcast.id, optins })
+    // Disparo real via Z-API (fire-and-forget — não bloqueia a resposta)
+    const msg = `🔥 *${promocao.titulo}*\n\n${promocao.descricao || ''}\n\n_Mensagem enviada por ${comercio_id}_`
+    for (const optin of optins) {
+      const whatsapp = optin.usuarios_cidadaos?.whatsapp
+      if (!whatsapp) continue
+      sendText(whatsapp, msg).catch(err =>
+        fastify.log.error(`[broadcast] falha ao enviar para ${whatsapp}: ${err.message}`)
+      )
+    }
+
+    // Atualiza status do broadcast para "enviado"
+    await supabaseAdmin
+      .from('mensagens_broadcast')
+      .update({ status: 'enviado' })
+      .eq('id', broadcast.id)
 
     return reply.status(202).send({
       ok: true,
@@ -330,8 +344,25 @@ async function promocoesRoutes(fastify) {
 
     if (error) return reply.status(500).send({ erro: error.message })
 
-    // TODO: disparar via Z-API para cada opt-in
-    // optins.forEach(o => sendText(o.usuarios_cidadaos.whatsapp, texto))
+    // Disparo real via Z-API (fire-and-forget)
+    const nomeComercio = comercio?.nome || 'Comércio'
+    const cabecalho = `📣 *Destaque TOP — ${nomeComercio}*\n\n`
+    for (const optin of optins) {
+      const whatsapp = optin.usuarios_cidadaos?.whatsapp
+      if (!whatsapp) continue
+      const envio = imagem
+        ? sendImage(whatsapp, imagem, cabecalho + texto.trim())
+        : sendText(whatsapp, cabecalho + texto.trim())
+      envio.catch(err =>
+        fastify.log.error(`[destaque_top] falha ao enviar para ${whatsapp}: ${err.message}`)
+      )
+    }
+
+    // Atualiza status do broadcast para "enviado"
+    await supabaseAdmin
+      .from('mensagens_broadcast')
+      .update({ status: 'enviado' })
+      .eq('id', broadcast.id)
 
     fastify.log.info(`[destaque_top] broadcast ${broadcast.id} registrado — ${count} destinatários`)
 
