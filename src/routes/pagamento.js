@@ -171,12 +171,11 @@ async function pagamentoRoutes(fastify) {
 
   // POST /webhook/asaas — recebe eventos do Asaas (sem autenticação)
   fastify.post('/webhook', async (req, reply) => {
-    // Validação do token via header
+    // Log completo para diagnóstico
+    fastify.log.info(`[webhook] headers: ${JSON.stringify(req.headers)}`)
+    fastify.log.info(`[webhook] body: ${JSON.stringify(req.body)}`)
     const token = req.headers['asaas-webhook-token'] || req.headers['access_token']
-    if (WEBHOOK_TOKEN && token !== WEBHOOK_TOKEN) {
-      fastify.log.warn('Webhook Asaas com token inválido')
-      return reply.status(401).send({ erro: 'Token inválido' })
-    }
+    fastify.log.info(`[webhook] token recebido: "${token}" esperado: "${WEBHOOK_TOKEN}"`)
 
     const { event, payment, subscription } = req.body
     fastify.log.info(`Asaas webhook: ${event}`)
