@@ -87,7 +87,7 @@ async function pagamentoRoutes(fastify) {
 
     // Salva CPF no banco se informado
     if (cpf) {
-      await supabaseAdmin.from('comerciantes').update({ cpf }).eq('id', comerciante_id).catch(() => {})
+      await supabaseAdmin.from('comerciantes').update({ cpf }).eq('id', comerciante_id)
     }
 
     // Busca ou cria customer no Asaas
