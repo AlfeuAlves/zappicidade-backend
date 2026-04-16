@@ -232,6 +232,53 @@ async function pagamentoRoutes(fastify) {
 
     return { assinatura: data || null }
   })
+
+  // GET /pagamento/verificar — consulta o Asaas e ativa se pagamento confirmado
+  fastify.get('/verificar', { preHandler: autenticar }, async (req, reply) => {
+    const { id: comerciante_id } = req.comerciante
+
+    // Busca a assinatura mais recente (pendente ou ativa)
+    const { data: ass } = await supabaseAdmin
+      .from('assinaturas')
+      .select('id, status, plano_slug, asaas_payment_id, asaas_subscription_id')
+      .eq('comerciante_id', comerciante_id)
+      .order('criado_em', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (!ass) return { ativa: false, status: 'sem_assinatura' }
+    if (ass.status === 'ativa') return { ativa: true, status: 'ativa' }
+
+    // Consulta o Asaas para saber se o pagamento foi confirmado
+    let confirmado = false
+    try {
+      if (ass.asaas_payment_id) {
+        const pag = await asaas('GET', `/payments/${ass.asaas_payment_id}`)
+        confirmado = pag.status === 'CONFIRMED' || pag.status === 'RECEIVED'
+        fastify.log.info(`[verificar] payment ${ass.asaas_payment_id} status=${pag.status}`)
+      } else if (ass.asaas_subscription_id) {
+        const pagamentos = await asaas('GET', `/payments?subscription=${ass.asaas_subscription_id}&limit=1`)
+        const ultimo = pagamentos?.data?.[0]
+        confirmado = ultimo?.status === 'CONFIRMED' || ultimo?.status === 'RECEIVED'
+        fastify.log.info(`[verificar] subscription ${ass.asaas_subscription_id} ultimo_pagamento status=${ultimo?.status}`)
+      }
+    } catch (err) {
+      fastify.log.error(`[verificar] erro ao consultar Asaas: ${err.message}`)
+      return { ativa: false, status: 'erro_asaas', erro: err.message }
+    }
+
+    if (confirmado) {
+      await supabaseAdmin
+        .from('assinaturas')
+        .update({ status: 'ativa' })
+        .eq('id', ass.id)
+
+      fastify.log.info(`[verificar] assinatura ${ass.id} ativada para ${comerciante_id}`)
+      return { ativa: true, status: 'ativada_agora' }
+    }
+
+    return { ativa: false, status: ass.status }
+  })
 }
 
 module.exports = pagamentoRoutes
