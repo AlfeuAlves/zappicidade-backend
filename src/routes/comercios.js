@@ -76,6 +76,15 @@ async function comerciosRoutes(fastify) {
       return reply.status(404).send({ erro: 'Comércio não encontrado' })
     }
 
+    // Busca fotos da galeria PRO (coluna fotos_galeria, separada do campo fotos da view)
+    const { data: comercioDb } = await supabase
+      .from('comercios')
+      .select('fotos_galeria')
+      .eq('id', data.id)
+      .single()
+
+    const fotosGaleria = (comercioDb?.fotos_galeria || []).filter(Boolean)
+
     // Busca promoções ativas
     const { data: promocoes } = await supabase
       .from('promocoes')
@@ -85,7 +94,7 @@ async function comerciosRoutes(fastify) {
       .or('fim.is.null,fim.gt.' + new Date().toISOString())
       .order('criado_em', { ascending: false })
 
-    return { ...data, promocoes: promocoes || [] }
+    return { ...data, fotos: fotosGaleria, promocoes: promocoes || [] }
   })
 
   // GET /comercios/categorias — lista todas as categorias ativas
