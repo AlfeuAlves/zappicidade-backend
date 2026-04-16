@@ -85,6 +85,26 @@ async function adminRoutes(fastify) {
     }
   })
 
+  // ── GET /admin/stats/top-comercios ────────────────────────
+  fastify.get('/stats/top-comercios', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { data } = await supabaseAdmin
+      .from('comercios')
+      .select('id, nome, total_interacoes, plano, categorias ( nome, icone )')
+      .order('total_interacoes', { ascending: false })
+      .limit(5)
+    return data || []
+  })
+
+  // ── GET /admin/stats/atividade ────────────────────────────
+  fastify.get('/stats/atividade', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { data } = await supabaseAdmin
+      .from('comerciantes')
+      .select('id, nome_completo, criado_em, status_verificacao, comercios ( nome )')
+      .order('criado_em', { ascending: false })
+      .limit(8)
+    return data || []
+  })
+
   // ── GET /admin/comerciantes ───────────────────────────────
   fastify.get('/comerciantes', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { status, busca, page = 1, limit = 30 } = req.query
