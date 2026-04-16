@@ -34,7 +34,7 @@ async function perfilRoutes(fastify) {
 
       supabaseAdmin
         .from('assinaturas')
-        .select('id, status, plano_id, planos(nome, preco, recursos), inicio, fim, trial_fim')
+        .select('id, status, plano_id, planos(nome, preco, recursos), inicio, fim, plano_slug, valor')
         .eq('comerciante_id', id)
         .eq('status', 'ativa')
         .single()
