@@ -34,16 +34,24 @@ async function asaas(method, path, body) {
   return data
 }
 
-async function buscarOuCriarCustomer(comerciante) {
+async function buscarOuCriarCustomer(comerciante, cpf) {
   // Procura pelo externalReference (nosso ID)
   const lista = await asaas('GET', `/customers?externalReference=${comerciante.id}&limit=1`)
-  if (lista?.data?.length > 0) return lista.data[0].id
+  if (lista?.data?.length > 0) {
+    // Atualiza CPF se ainda não tinha
+    const c = lista.data[0]
+    if (cpf && !c.cpfCnpj) {
+      await asaas('PUT', `/customers/${c.id}`, { cpfCnpj: cpf }).catch(() => {})
+    }
+    return c.id
+  }
 
   // Cria novo customer
   const customer = await asaas('POST', '/customers', {
     name: comerciante.nome_completo || comerciante.email,
     email: comerciante.email,
     mobilePhone: comerciante.whatsapp?.replace(/\D/g, '') || undefined,
+    cpfCnpj: cpf || undefined,
     externalReference: comerciante.id,
   })
   return customer.id
@@ -53,7 +61,7 @@ async function pagamentoRoutes(fastify) {
 
   // POST /pagamento/checkout — cria cobrança e retorna URL de pagamento
   fastify.post('/checkout', { preHandler: autenticar }, async (req, reply) => {
-    const { plano_id } = req.body
+    const { plano_id, cpf } = req.body
     const { id: comerciante_id } = req.comerciante
 
     fastify.log.info(`[checkout] plano_id=${plano_id} comerciante_id=${comerciante_id} ASAAS_KEY=${ASAAS_KEY ? 'ok' : 'MISSING'}`)
@@ -77,8 +85,13 @@ async function pagamentoRoutes(fastify) {
 
     if (!com) return reply.status(404).send({ erro: 'Comerciante não encontrado' })
 
+    // Salva CPF no banco se informado
+    if (cpf) {
+      await supabaseAdmin.from('comerciantes').update({ cpf }).eq('id', comerciante_id).catch(() => {})
+    }
+
     // Busca ou cria customer no Asaas
-    const customerId = await buscarOuCriarCustomer(com)
+    const customerId = await buscarOuCriarCustomer(com, cpf)
 
     const callbackSuccess = `${FRONTEND_URL}/comerciante/pagamento/sucesso`
     const vencimento = new Date()
