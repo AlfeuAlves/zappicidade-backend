@@ -97,7 +97,6 @@ async function pagamentoRoutes(fastify) {
         cycle: 'MONTHLY',
         description: `ZappiCidade ${plano.label}`,
         externalReference: `${comerciante_id}|${plano_id}`,
-        callback: { successUrl: callbackSuccess },
       })
       asaasId = sub.id
       // Busca a primeira cobrança gerada para pegar a URL
@@ -129,7 +128,6 @@ async function pagamentoRoutes(fastify) {
         dueDate,
         description: `ZappiCidade ${plano.label}`,
         externalReference: `${comerciante_id}|${plano_id}`,
-        callback: { successUrl: callbackSuccess },
       })
       asaasId = pag.id
       paymentUrl = pag.invoiceUrl || pag.bankSlipUrl || `https://sandbox.asaas.com/c/${pag.id}`
