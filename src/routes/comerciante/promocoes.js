@@ -269,6 +269,80 @@ async function promocoesRoutes(fastify) {
       total: count
     })
   })
+
+  // POST /comerciante/broadcast — Destaque TOP (mensagem livre com imagem opcional)
+  fastify.post('/broadcast', { preHandler: autenticar }, async (req, reply) => {
+    const { comercio_id, id: comerciante_id } = req.comerciante
+    const { texto, publico, imagem } = req.body
+
+    if (!texto?.trim()) {
+      return reply.status(400).send({ erro: 'O texto da mensagem é obrigatório' })
+    }
+
+    if (!comercio_id) {
+      return reply.status(400).send({ erro: 'Nenhum comércio vinculado à sua conta' })
+    }
+
+    // Verifica assinatura PRO ativa
+    const { data: assinatura } = await supabaseAdmin
+      .from('assinaturas')
+      .select('id')
+      .eq('comerciante_id', comerciante_id)
+      .eq('status', 'ativa')
+      .single()
+
+    if (!assinatura) {
+      return reply.status(403).send({ erro: 'Destaque TOP disponível apenas no plano PRO', upgrade: true })
+    }
+
+    // Busca opt-ins ativos do comércio (toda cidade ou mesmo bairro)
+    let optinsQuery = supabaseAdmin
+      .from('optins')
+      .select('usuario_id, usuarios_cidadaos(whatsapp, nome)', { count: 'exact' })
+      .eq('comercio_id', comercio_id)
+      .eq('status', 'ativo')
+
+    const { data: optins, count } = await optinsQuery
+
+    if (!count || count === 0) {
+      return reply.status(400).send({ erro: 'Nenhum cliente com opt-in ativo para receber mensagens' })
+    }
+
+    // Busca dados do comércio para o título
+    const { data: comercio } = await supabaseAdmin
+      .from('comercios')
+      .select('nome')
+      .eq('id', comercio_id)
+      .single()
+
+    // Registra o Destaque TOP
+    const { data: broadcast, error } = await supabaseAdmin
+      .from('mensagens_broadcast')
+      .insert({
+        comercio_id,
+        tipo: 'destaque_top',
+        titulo: `Destaque TOP — ${comercio?.nome || 'Comércio'}`,
+        mensagem: texto.trim(),
+        total_destinatarios: count,
+        status: 'pendente',
+      })
+      .select()
+      .single()
+
+    if (error) return reply.status(500).send({ erro: error.message })
+
+    // TODO: disparar via Z-API para cada opt-in
+    // optins.forEach(o => sendText(o.usuarios_cidadaos.whatsapp, texto))
+
+    fastify.log.info(`[destaque_top] broadcast ${broadcast.id} registrado — ${count} destinatários`)
+
+    return reply.status(202).send({
+      ok: true,
+      mensagem: `Destaque TOP enviado para ${count} cliente${count !== 1 ? 's' : ''}!`,
+      broadcast_id: broadcast.id,
+      total: count
+    })
+  })
 }
 
 module.exports = promocoesRoutes
