@@ -71,6 +71,7 @@ fastify.register(require('./routes/comerciante/dashboard'), { prefix: '/comercia
 fastify.register(require('./routes/comerciante/perfil'),    { prefix: '/comerciante/perfil' })
 fastify.register(require('./routes/comerciante/promocoes'), { prefix: '/comerciante/promocoes' })
 fastify.register(require('./routes/comerciante/upload'),   { prefix: '/comerciante/upload' })
+fastify.register(require('./routes/pagamento'),            { prefix: '/pagamento' })
 
 // ── Tratamento de erros globais ───────────────────────────────
 fastify.setErrorHandler((error, req, reply) => {
