@@ -56,8 +56,12 @@ async function pagamentoRoutes(fastify) {
     const { plano_id } = req.body
     const { id: comerciante_id } = req.comerciante
 
+    fastify.log.info(`[checkout] plano_id=${plano_id} comerciante_id=${comerciante_id} ASAAS_KEY=${ASAAS_KEY ? 'ok' : 'MISSING'}`)
+
     const plano = PLANOS[plano_id]
     if (!plano) return reply.status(400).send({ erro: 'Plano inválido' })
+
+    try {
 
     // Plano básico — sem pagamento
     if (plano_id === 'basico') {
@@ -148,6 +152,10 @@ async function pagamentoRoutes(fastify) {
     }
 
     return { ok: true, url: paymentUrl }
+    } catch (err) {
+      fastify.log.error(`[checkout] ERRO: ${err.message}`)
+      return reply.status(500).send({ erro: err.message })
+    }
   })
 
   // POST /webhook/asaas — recebe eventos do Asaas (sem autenticação)
