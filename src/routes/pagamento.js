@@ -182,9 +182,35 @@ async function pagamentoRoutes(fastify) {
 
     // Pagamento confirmado (PIX ou cartão)
     if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
-      const externalRef = payment?.externalReference // "comerciante_id|plano_slug"
+      const externalRef = payment?.externalReference
       if (!externalRef) return { ok: true }
 
+      // Formato Fundador: "fundador|comerciante_id|categoria_id"
+      if (externalRef.startsWith('fundador|')) {
+        const [, comerciante_id, categoria_id] = externalRef.split('|')
+        if (!comerciante_id || !categoria_id) return { ok: true }
+
+        const inicio = new Date()
+        const fim    = new Date(inicio)
+        fim.setMonth(fim.getMonth() + 6)
+
+        const { error } = await supabaseAdmin
+          .from('selos_fundador')
+          .update({
+            status:           'ativo',
+            beneficio_inicio: inicio.toISOString(),
+            beneficio_fim:    fim.toISOString(),
+          })
+          .eq('comerciante_id', comerciante_id)
+          .eq('categoria_id',   categoria_id)
+          .eq('status', 'pendente')
+
+        if (error) fastify.log.error(`Erro ao ativar Fundador: ${error.message}`)
+        else fastify.log.info(`Fundador ativado: ${comerciante_id} cat=${categoria_id}`)
+        return { ok: true }
+      }
+
+      // Formato PRO: "comerciante_id|plano_slug"
       const [comerciante_id, plano_slug] = externalRef.split('|')
       const plano = PLANOS[plano_slug]
       if (!plano || !comerciante_id) return { ok: true }
