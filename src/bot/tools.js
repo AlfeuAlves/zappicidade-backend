@@ -173,7 +173,8 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
           : 999
       }))
       .sort((a, b) => {
-        // 1º plano pago, 2º aberto agora, 3º distância, 4º avaliação
+        // 1º Fundador ativo, 2º plano pago, 3º aberto agora, 4º distância
+        if (b.tem_fundador_ativo !== a.tem_fundador_ativo) return (b.tem_fundador_ativo ? 1 : 0) - (a.tem_fundador_ativo ? 1 : 0)
         if (b.plano_pago !== a.plano_pago) return (b.plano_pago ? 1 : 0) - (a.plano_pago ? 1 : 0)
         if (b.aberto_agora !== a.aberto_agora) return (b.aberto_agora ? 1 : 0) - (a.aberto_agora ? 1 : 0)
         return a.distancia_km - b.distancia_km
@@ -191,17 +192,18 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
     proximo_offset: temMais ? offset + limit : null,
     localizacao_usada: temGPS ? 'gps' : (localizacao?.bairro ? 'bairro' : null),
     comercios: resultados.map(c => ({
-      nome:         c.nome,
-      slug:         c.slug,
-      categoria:    c.categoria_nome,
-      bairro:       c.bairro || 'não informado',
-      contato:      c.whatsapp ? `📱 WhatsApp: ${c.whatsapp}` : (c.telefone ? `📞 Telefone: ${c.telefone}` : null),
-      aberto:       c.aberto_agora,
-      avaliacao:    c.avaliacao,
-      distancia_km: c.distancia_km && c.distancia_km < 999
+      nome:              c.nome,
+      slug:              c.slug,
+      categoria:         c.categoria_nome,
+      bairro:            c.bairro || 'não informado',
+      contato:           c.whatsapp ? `📱 WhatsApp: ${c.whatsapp}` : (c.telefone ? `📞 Telefone: ${c.telefone}` : null),
+      aberto:            c.aberto_agora,
+      avaliacao:         c.avaliacao,
+      fundador:          c.tem_fundador_ativo ? '🥇 Fundador ZappiCidade' : null,
+      distancia_km:      c.distancia_km && c.distancia_km < 999
         ? parseFloat(c.distancia_km.toFixed(1))
         : null,
-      link_perfil:  `https://www.zappicidadebarcarena.com.br/c/${c.slug}`
+      link_perfil:       `https://www.zappicidadebarcarena.com.br/c/${c.slug}`
     }))
   }
 }
