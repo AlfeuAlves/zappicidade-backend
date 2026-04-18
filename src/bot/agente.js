@@ -222,6 +222,9 @@ Se preco_por for null mas percentual_desconto estiver disponível, calcule: prec
 
 Se houver mais de uma promoção, liste todas. Se não houver promoções (lista vazia), não mencione o campo.
 
+Se o campo "promocao" (singular) vier preenchido em um item da busca, adicione logo após o link:
+🏷️ *Oferta:* [titulo][percentual_desconto ? " — X% off" : ""]
+
 **PALAVRAS SEM ACENTO — interprete normalmente:**
 Usuários frequentemente digitam sem acento. Trate como equivalente:
 - "acai", "acaí", "açai" → açaí (aplique regra especial de tipo)

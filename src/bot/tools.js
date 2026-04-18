@@ -185,6 +185,28 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
   const total   = data[0]?.total_count ?? data.length
   const temMais = offset + limit < total
 
+  // Busca promoção destaque para lojas que têm promoções ativas
+  const idsComPromo = resultados
+    .filter(c => c.total_promocoes_ativas > 0)
+    .map(c => c.id)
+
+  let promoMap = {}
+  if (idsComPromo.length > 0) {
+    const { data: promos } = await supabase
+      .from('promocoes')
+      .select('comercio_id, titulo, percentual_desconto, preco_de, preco_por, fim')
+      .in('comercio_id', idsComPromo)
+      .eq('status', 'ativa')
+      .or('fim.is.null,fim.gt.' + new Date().toISOString())
+      .order('criado_em', { ascending: false })
+
+    if (promos) {
+      for (const p of promos) {
+        if (!promoMap[p.comercio_id]) promoMap[p.comercio_id] = p
+      }
+    }
+  }
+
   return {
     total,
     exibindo: resultados.length,
@@ -200,6 +222,13 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
       aberto:            c.aberto_agora,
       avaliacao:         c.avaliacao,
       fundador:          c.tem_fundador_ativo ? '🥇 Fundador ZappiCidade' : null,
+      promocao:          promoMap[c.id] ? {
+        titulo:               promoMap[c.id].titulo,
+        percentual_desconto:  promoMap[c.id].percentual_desconto,
+        preco_de:             promoMap[c.id].preco_de,
+        preco_por:            promoMap[c.id].preco_por,
+        fim:                  promoMap[c.id].fim,
+      } : null,
       distancia_km:      c.distancia_km && c.distancia_km < 999
         ? parseFloat(c.distancia_km.toFixed(1))
         : null,
