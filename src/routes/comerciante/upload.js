@@ -119,6 +119,38 @@ async function uploadRoutes(fastify) {
     return { ok: true, url: publicUrl, galeria }
   })
 
+  // POST /comerciante/upload/promocao — envia imagem de promoção
+  fastify.post('/promocao', {
+    preHandler: autenticar,
+    config: { rawBody: false },
+  }, async (req, reply) => {
+    const { base64, extensao } = req.body
+    const { comercio_id } = req.comerciante
+
+    if (!comercio_id) return reply.status(400).send({ erro: 'Nenhum comércio vinculado à sua conta' })
+    if (!base64) return reply.status(400).send({ erro: 'Imagem não enviada' })
+
+    const ext = (extensao || 'jpg').toLowerCase().replace('jpeg', 'jpg')
+    const dados = base64.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(dados, 'base64')
+    const path = `promocoes/${comercio_id}_${Date.now()}.${ext}`
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('comercios')
+      .upload(path, buffer, {
+        contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+        upsert: false,
+      })
+
+    if (uploadError) return reply.status(500).send({ erro: uploadError.message })
+
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('comercios')
+      .getPublicUrl(path)
+
+    return { ok: true, url: publicUrl }
+  })
+
   // DELETE /comerciante/upload/galeria/:indice — remove foto da galeria
   fastify.delete('/galeria/:indice', {
     preHandler: autenticar,
