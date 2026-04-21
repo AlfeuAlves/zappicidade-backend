@@ -231,8 +231,22 @@ async function adminRoutes(fastify) {
 
     if (Object.keys(updates).length === 0) return reply.status(400).send({ erro: 'Nenhum campo para atualizar' })
 
+    const { data: comerciante, error: fetchError } = await supabaseAdmin
+      .from('comerciantes')
+      .select('nome_completo, whatsapp')
+      .eq('id', id)
+      .single()
+
     const { error } = await supabaseAdmin.from('comerciantes').update(updates).eq('id', id)
     if (error) return reply.status(500).send({ erro: error.message })
+
+    if (ativo === false && !fetchError && comerciante?.whatsapp) {
+      sendText(
+        comerciante.whatsapp,
+        `Olá, ${comerciante.nome_completo || 'comerciante'}! ❌ Sua conta no *ZappiCidade* foi *cancelada*.\n\nSe acredita que isso foi um engano, entre em contato com o suporte.`
+      ).catch(() => {})
+    }
+
     return { ok: true }
   })
 
@@ -240,9 +254,20 @@ async function adminRoutes(fastify) {
   fastify.delete('/comerciantes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
     try {
+      const { data: comerciante } = await supabaseAdmin
+        .from('comerciantes').select('nome_completo, whatsapp').eq('id', id).single()
+
       await supabaseAdmin.from('assinaturas').delete().eq('comerciante_id', id)
       const { error } = await supabaseAdmin.from('comerciantes').delete().eq('id', id)
       if (error) return reply.status(500).send({ erro: error.message })
+
+      if (comerciante?.whatsapp) {
+        sendText(
+          comerciante.whatsapp,
+          `Olá, ${comerciante.nome_completo || 'comerciante'}! ❌ Sua conta no *ZappiCidade* foi *cancelada*.\n\nSe acredita que isso foi um engano, entre em contato com o suporte.`
+        ).catch(() => {})
+      }
+
       return { ok: true }
     } catch (ex) {
       return reply.status(500).send({ erro: ex.message || 'Exceção desconhecida' })
@@ -253,9 +278,20 @@ async function adminRoutes(fastify) {
   fastify.post('/comerciantes/:id/excluir', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { id } = req.params
     try {
+      const { data: comerciante } = await supabaseAdmin
+        .from('comerciantes').select('nome_completo, whatsapp').eq('id', id).single()
+
       await supabaseAdmin.from('assinaturas').delete().eq('comerciante_id', id)
       const { error } = await supabaseAdmin.from('comerciantes').delete().eq('id', id)
       if (error) return reply.status(500).send({ erro: error.message })
+
+      if (comerciante?.whatsapp) {
+        sendText(
+          comerciante.whatsapp,
+          `Olá, ${comerciante.nome_completo || 'comerciante'}! ❌ Sua conta no *ZappiCidade* foi *cancelada*.\n\nSe acredita que isso foi um engano, entre em contato com o suporte.`
+        ).catch(() => {})
+      }
+
       return { ok: true }
     } catch (ex) {
       return reply.status(500).send({ erro: ex.message || 'Erro desconhecido' })

@@ -229,6 +229,90 @@ async function perfilRoutes(fastify) {
 
     return { ok: true, mensagem: `Solicitação enviada! Aguarde a verificação — você será notificado pelo WhatsApp.` }
   })
+
+  // POST /comerciante/perfil/criar-comercio — cria novo comércio e vincula ao comerciante
+  fastify.post('/criar-comercio', {
+    preHandler: autenticar,
+    schema: {
+      body: {
+        type: 'object',
+        required: ['nome'],
+        properties: {
+          nome:         { type: 'string', minLength: 2 },
+          categoria_id: { type: 'string' },
+          bairro:       { type: 'string' },
+          endereco:     { type: 'string' },
+          telefone:     { type: 'string' },
+          whatsapp:     { type: 'string' },
+        }
+      }
+    }
+  }, async (req, reply) => {
+    const { id, comercio_id: jaVinculado } = req.comerciante
+
+    if (jaVinculado) {
+      return reply.status(400).send({ erro: 'Sua conta já está vinculada a um comércio' })
+    }
+
+    const { nome, categoria_id, bairro, endereco, telefone, whatsapp } = req.body
+
+    // Gera slug único
+    const slugBase = nome.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+    const { data: existing } = await supabaseAdmin
+      .from('comercios').select('id').ilike('slug', `${slugBase}%`)
+    const slug = existing?.length ? `${slugBase}-${existing.length + 1}` : slugBase
+
+    // Busca cidade padrão
+    const { data: cidade } = await supabaseAdmin
+      .from('cidades').select('id').limit(1).single()
+
+    // Cria o comércio
+    const { data: comercio, error } = await supabaseAdmin
+      .from('comercios')
+      .insert({
+        nome, slug,
+        categoria_id: categoria_id || null,
+        bairro: bairro || null,
+        endereco: endereco || null,
+        telefone: telefone || null,
+        whatsapp: whatsapp || null,
+        cidade_id: cidade?.id || null,
+        status_operacional: 'ativo',
+        verificado: false,
+        destaque: false,
+      })
+      .select('id, nome, slug, categoria_nome:categorias(nome), bairro, endereco, telefone')
+      .single()
+
+    if (error) return reply.status(500).send({ erro: error.message })
+
+    // Gera token e vincula ao comerciante
+    const token = crypto.randomBytes(32).toString('hex')
+    await supabaseAdmin
+      .from('comerciantes')
+      .update({ comercio_id: comercio.id, token_verificacao: token, status_verificacao: 'pendente' })
+      .eq('id', id)
+
+    // Notifica o fundador
+    const { data: comerciante } = await supabaseAdmin
+      .from('comerciantes').select('nome_completo, email').eq('id', id).single()
+    const founderWa = process.env.FOUNDER_WHATSAPP
+    const apiUrl = process.env.API_URL || 'http://localhost:3001'
+    if (founderWa) {
+      const msg =
+        `🔔 *Novo estabelecimento cadastrado!*\n\n` +
+        `👤 *${comerciante?.nome_completo || comerciante?.email}* cadastrou:\n` +
+        `🏪 *${nome}*\n\n` +
+        `✅ *APROVAR:*\n${apiUrl}/admin/verificar/${token}\n\n` +
+        `❌ *REJEITAR:*\n${apiUrl}/admin/verificar/${token}?rejeitar=true`
+      sendText(founderWa, msg).catch(() => {})
+    }
+
+    return { ok: true, comercio }
+  })
 }
 
 module.exports = perfilRoutes
