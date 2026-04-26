@@ -761,6 +761,16 @@ async function adminRoutes(fastify) {
     }
   })
 
+  // ── GET /admin/prospeccao/log ────────────────────────────────
+  fastify.get('/prospeccao/log', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const fs   = require('fs')
+    const path = require('path')
+    const LOG  = path.join(__dirname, '../../data/prospeccao_admin.json')
+    const log  = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : { enviados: [] }
+    const enviados = (log.enviados || []).slice().reverse()
+    return { data: enviados, total: enviados.length }
+  })
+
   // ── GET /admin/prospeccao/preview ───────────────────────────
   fastify.get('/prospeccao/preview', { preHandler: autenticarAdmin }, async (req, reply) => {
     const fs   = require('fs')
