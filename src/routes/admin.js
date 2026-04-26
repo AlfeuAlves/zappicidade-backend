@@ -761,32 +761,46 @@ async function adminRoutes(fastify) {
     }
   })
 
+  // ── Helpers de log persistente (Supabase Storage) ────────────
+  const STORAGE_BUCKET = 'admin-data'
+  const STORAGE_FILE   = 'prospeccao.json'
+
+  // Cria o bucket na primeira vez (ignora erro se já existir)
+  supabaseAdmin.storage.createBucket(STORAGE_BUCKET, { public: false }).catch(() => {})
+
+  async function lerLogProspeccao() {
+    try {
+      const { data, error } = await supabaseAdmin.storage.from(STORAGE_BUCKET).download(STORAGE_FILE)
+      if (error || !data) return { enviados: [] }
+      const text = typeof data.text === 'function' ? await data.text() : Buffer.from(await data.arrayBuffer()).toString('utf8')
+      return JSON.parse(text)
+    } catch { return { enviados: [] } }
+  }
+
+  async function salvarLogProspeccao(log) {
+    const buf = Buffer.from(JSON.stringify(log, null, 2), 'utf8')
+    await supabaseAdmin.storage.from(STORAGE_BUCKET).upload(STORAGE_FILE, buf, {
+      contentType: 'application/json',
+      upsert: true,
+    })
+  }
+
   // ── GET /admin/prospeccao/log ────────────────────────────────
   fastify.get('/prospeccao/log', { preHandler: autenticarAdmin }, async (req, reply) => {
-    const fs   = require('fs')
-    const path = require('path')
-    const LOG  = path.join(__dirname, '../../data/prospeccao_admin.json')
-    const log  = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : { enviados: [] }
+    const log      = await lerLogProspeccao()
     const enviados = (log.enviados || []).slice().reverse()
     return { data: enviados, total: enviados.length }
   })
 
   // ── GET /admin/prospeccao/preview ───────────────────────────
   fastify.get('/prospeccao/preview', { preHandler: autenticarAdmin }, async (req, reply) => {
-    const fs   = require('fs')
-    const path = require('path')
-    const LOG  = path.join(__dirname, '../../data/prospeccao_admin.json')
+    const [log, { count: totalComWhatsapp }] = await Promise.all([
+      lerLogProspeccao(),
+      supabaseAdmin.from('comercios').select('*', { count: 'exact', head: true })
+        .not('whatsapp', 'is', null).neq('whatsapp', '').eq('status_operacional', 'ativo'),
+    ])
 
-    const log         = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : { enviados: [] }
-    const jaContatados = new Set(log.enviados.map(e => e.id))
-
-    const { count: totalComWhatsapp } = await supabaseAdmin
-      .from('comercios')
-      .select('*', { count: 'exact', head: true })
-      .not('whatsapp', 'is', null)
-      .neq('whatsapp', '')
-      .eq('status_operacional', 'ativo')
-
+    const jaContatados = new Set((log.enviados || []).map(e => e.id))
     const total    = totalComWhatsapp || 0
     const enviados = jaContatados.size
     const pendentes = Math.max(0, total - enviados)
@@ -796,18 +810,12 @@ async function adminRoutes(fastify) {
 
   // ── POST /admin/prospeccao/iniciar ───────────────────────────
   fastify.post('/prospeccao/iniciar', { preHandler: autenticarAdmin }, async (req, reply) => {
-    const fs   = require('fs')
-    const path = require('path')
-    const LOG  = path.join(__dirname, '../../data/prospeccao_admin.json')
-    const DATA_DIR = path.join(__dirname, '../../data')
-
     const { limite = 10, delay_ms = 8000 } = req.body || {}
     const limiteNum = Math.min(Math.max(parseInt(limite) || 10, 1), 50)
     const delayMs   = Math.min(Math.max(parseInt(delay_ms) || 8000, 3000), 60000)
 
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
-    const log          = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : { enviados: [] }
-    const jaContatados = new Set(log.enviados.map(e => e.id))
+    const log          = await lerLogProspeccao()
+    const jaContatados = new Set((log.enviados || []).map(e => e.id))
 
     const PAINEL_URL = 'https://painel.zappicidadebarcarena.com.br/comerciante/login'
     const SITE_BASE  = 'https://www.zappicidadebarcarena.com.br/c'
@@ -880,7 +888,7 @@ Qualquer dúvida, é só responder aqui. 😊
       try {
         await sendText(tel, mensagem)
         log.enviados.push({ id: c.id, nome: c.nome, telefone: tel, enviado_em: new Date().toISOString() })
-        fs.writeFileSync(LOG, JSON.stringify(log, null, 2))
+        await salvarLogProspeccao(log)
         enviados++
       } catch {
         falhas++
@@ -892,7 +900,7 @@ Qualquer dúvida, é só responder aqui. 😊
     }
 
     log.ultimo_envio = new Date().toISOString()
-    fs.writeFileSync(LOG, JSON.stringify(log, null, 2))
+    await salvarLogProspeccao(log)
 
     return { ok: true, enviados, falhas, total_candidatos: candidatos.length }
   })
