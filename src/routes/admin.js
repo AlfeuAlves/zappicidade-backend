@@ -837,7 +837,7 @@ async function adminRoutes(fastify) {
 Somos o *ZappiCidade* — o assistente digital de Barcarena pelo WhatsApp.
 
 Antes de tudo, *experimente agora mesmo* como os moradores nos usam:
-👉 https://wa.me/559193870599?text=Oi
+👉 https://zappicidadebarcarena.com.br/zappi
 
 Manda uma mensagem lá e veja como funciona! É bem simples 😊
 
