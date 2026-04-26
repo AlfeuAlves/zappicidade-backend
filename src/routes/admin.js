@@ -800,7 +800,7 @@ async function adminRoutes(fastify) {
     const jaContatados = new Set(log.enviados.map(e => e.id))
 
     const PAINEL_URL = 'https://painel.zappicidadebarcarena.com.br/comerciante/login'
-    const SITE_BASE  = 'https://zappicidade-site.vercel.app/c'
+    const SITE_BASE  = 'https://www.zappicidadebarcarena.com.br/c'
 
     const { data: comercios, error } = await supabaseAdmin
       .from('comercios')
