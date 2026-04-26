@@ -761,6 +761,131 @@ async function adminRoutes(fastify) {
     }
   })
 
+  // ── GET /admin/prospeccao/preview ───────────────────────────
+  fastify.get('/prospeccao/preview', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const fs   = require('fs')
+    const path = require('path')
+    const LOG  = path.join(__dirname, '../../data/prospeccao_admin.json')
+
+    const log         = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : { enviados: [] }
+    const jaContatados = new Set(log.enviados.map(e => e.id))
+
+    const { count: totalComWhatsapp } = await supabaseAdmin
+      .from('comercios')
+      .select('*', { count: 'exact', head: true })
+      .not('whatsapp', 'is', null)
+      .neq('whatsapp', '')
+      .eq('status_operacional', 'ativo')
+
+    const total    = totalComWhatsapp || 0
+    const enviados = jaContatados.size
+    const pendentes = Math.max(0, total - enviados)
+
+    return { total_com_whatsapp: total, ja_contatados: enviados, pendentes, ultimo_envio: log.ultimo_envio || null }
+  })
+
+  // ── POST /admin/prospeccao/iniciar ───────────────────────────
+  fastify.post('/prospeccao/iniciar', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const fs   = require('fs')
+    const path = require('path')
+    const LOG  = path.join(__dirname, '../../data/prospeccao_admin.json')
+    const DATA_DIR = path.join(__dirname, '../../data')
+
+    const { limite = 10, delay_ms = 8000 } = req.body || {}
+    const limiteNum = Math.min(Math.max(parseInt(limite) || 10, 1), 50)
+    const delayMs   = Math.min(Math.max(parseInt(delay_ms) || 8000, 3000), 60000)
+
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+    const log          = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : { enviados: [] }
+    const jaContatados = new Set(log.enviados.map(e => e.id))
+
+    const PAINEL_URL = 'https://zappicidade-painel.vercel.app/comerciante/login'
+    const SITE_BASE  = 'https://zappicidade-site.vercel.app/c'
+
+    const { data: comercios, error } = await supabaseAdmin
+      .from('comercios')
+      .select('id, nome, slug, whatsapp, bairro, categorias(nome)')
+      .not('whatsapp', 'is', null)
+      .neq('whatsapp', '')
+      .eq('status_operacional', 'ativo')
+      .order('avaliacao', { ascending: false })
+      .limit(limiteNum + jaContatados.size + 100)
+
+    if (error) return reply.status(500).send({ erro: error.message })
+
+    const candidatos = (comercios || [])
+      .filter(c => !jaContatados.has(c.id))
+      .slice(0, limiteNum)
+
+    if (candidatos.length === 0) {
+      return { ok: true, enviados: 0, falhas: 0, total_candidatos: 0, mensagem: 'Todos os estabelecimentos já foram contatados.' }
+    }
+
+    let enviados = 0
+    let falhas   = 0
+
+    for (let i = 0; i < candidatos.length; i++) {
+      const c   = candidatos[i]
+      const tel = (c.whatsapp || '').replace(/\D/g, '')
+      if (!tel || tel.length < 10) { falhas++; continue }
+
+      const categoria = c.categorias?.nome || 'estabelecimento'
+      const linkPerfil = `${SITE_BASE}/${c.slug}`
+
+      const mensagem = `Olá! 👋
+
+Somos o *ZappiCidade*, o assistente digital de Barcarena pelo WhatsApp com IA.
+
+Boa notícia: *${c.nome}* já está cadastrado e aparecendo nas buscas dos moradores da cidade! 🎉
+
+📍 Veja seu perfil:
+${linkPerfil}
+
+━━━━━━━━━━━━━━━━━
+🤖 *Como funciona?*
+
+Moradores mandam mensagem pro nosso bot e perguntam:
+
+• _"${categoria === 'Farmácias' ? 'Farmácia aberta agora perto de mim?' : categoria === 'Restaurantes' ? 'Restaurante que serve marmita hoje?' : `Onde tem ${categoria.toLowerCase()} em Barcarena?`}"_
+
+A IA responde na hora com os melhores do bairro — incluindo o seu! 🏪
+
+👉 *Teste agora:*
+https://wa.me/559193870599?text=Oi
+
+━━━━━━━━━━━━━━━━━
+
+Com uma conta gratuita você pode:
+✅ Editar horários de funcionamento
+✅ Adicionar foto e descrição
+✅ Receber mais clientes
+
+👉 Ativar sua conta (grátis):
+${PAINEL_URL}
+
+Qualquer dúvida, é só responder aqui. 😊
+— Equipe ZappiCidade`
+
+      try {
+        await sendText(tel, mensagem)
+        log.enviados.push({ id: c.id, nome: c.nome, telefone: tel, enviado_em: new Date().toISOString() })
+        fs.writeFileSync(LOG, JSON.stringify(log, null, 2))
+        enviados++
+      } catch {
+        falhas++
+      }
+
+      if (i < candidatos.length - 1) {
+        await new Promise(r => setTimeout(r, delayMs))
+      }
+    }
+
+    log.ultimo_envio = new Date().toISOString()
+    fs.writeFileSync(LOG, JSON.stringify(log, null, 2))
+
+    return { ok: true, enviados, falhas, total_candidatos: candidatos.length }
+  })
+
   // ── GET /admin/verificar/:token (link via WhatsApp — legado) ──
   fastify.get('/verificar/:token', async (req, reply) => {
     const { token } = req.params
