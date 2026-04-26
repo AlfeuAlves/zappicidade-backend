@@ -799,7 +799,7 @@ async function adminRoutes(fastify) {
     const log          = fs.existsSync(LOG) ? JSON.parse(fs.readFileSync(LOG, 'utf8')) : { enviados: [] }
     const jaContatados = new Set(log.enviados.map(e => e.id))
 
-    const PAINEL_URL = 'https://zappicidade-painel.vercel.app/comerciante/login'
+    const PAINEL_URL = 'https://painel.zappicidadebarcarena.com.br/comerciante/login'
     const SITE_BASE  = 'https://zappicidade-site.vercel.app/c'
 
     const { data: comercios, error } = await supabaseAdmin
@@ -834,33 +834,34 @@ async function adminRoutes(fastify) {
 
       const mensagem = `Olá! 👋
 
-Somos o *ZappiCidade*, o assistente digital de Barcarena pelo WhatsApp com IA.
+Somos o *ZappiCidade* — o assistente digital de Barcarena pelo WhatsApp.
 
-Boa notícia: *${c.nome}* já está cadastrado e aparecendo nas buscas dos moradores da cidade! 🎉
+Antes de tudo, *experimente agora mesmo* como os moradores nos usam:
+👉 https://wa.me/559193870599?text=Oi
+
+Manda uma mensagem lá e veja como funciona! É bem simples 😊
+
+━━━━━━━━━━━━━━━━━
+🏪 *Sobre o ${c.nome}*
+
+Boa notícia: *${c.nome}* já está cadastrado e aparece nas buscas dos moradores de Barcarena! 🎉
+
+Os moradores perguntam ao nosso assistente coisas como:
+• _"${categoria === 'Farmácias' ? 'Farmácia aberta agora perto de mim?' : categoria === 'Restaurantes' ? 'Restaurante que serve marmita hoje?' : `Onde tem ${categoria.toLowerCase()} em Barcarena?`}"_
+
+E a IA indica os melhores — incluindo o seu estabelecimento! 🤖
 
 📍 Veja seu perfil:
 ${linkPerfil}
 
 ━━━━━━━━━━━━━━━━━
-🤖 *Como funciona?*
 
-Moradores mandam mensagem pro nosso bot e perguntam:
-
-• _"${categoria === 'Farmácias' ? 'Farmácia aberta agora perto de mim?' : categoria === 'Restaurantes' ? 'Restaurante que serve marmita hoje?' : `Onde tem ${categoria.toLowerCase()} em Barcarena?`}"_
-
-A IA responde na hora com os melhores do bairro — incluindo o seu! 🏪
-
-👉 *Teste agora:*
-https://wa.me/559193870599?text=Oi
-
-━━━━━━━━━━━━━━━━━
-
-Com uma conta gratuita você pode:
+Quer aparecer ainda mais? Com uma conta gratuita você pode:
 ✅ Editar horários de funcionamento
 ✅ Adicionar foto e descrição
-✅ Receber mais clientes
+✅ Receber contatos de clientes direto
 
-👉 Ativar sua conta (grátis):
+👉 Cadastre-se grátis:
 ${PAINEL_URL}
 
 Qualquer dúvida, é só responder aqui. 😊
