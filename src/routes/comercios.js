@@ -68,7 +68,7 @@ async function comerciosRoutes(fastify) {
 
     const { data, error } = await supabase
       .from('vw_comercios_publicos')
-      .select('*, tem_pro_ativo, tem_fundador_ativo, tem_selo_fundador')
+      .select('*')
       .eq('slug', slug)
       .single()
 
@@ -79,11 +79,24 @@ async function comerciosRoutes(fastify) {
     // Busca fotos da galeria PRO (coluna fotos_galeria, separada do campo fotos da view)
     const { data: comercioDb } = await supabase
       .from('comercios')
-      .select('fotos_galeria')
+      .select('fotos_galeria, plano, comerciante_ativo')
       .eq('id', data.id)
       .single()
 
     const fotosGaleria = (comercioDb?.fotos_galeria || []).filter(Boolean)
+
+    // Calcula tem_pro_ativo diretamente (não depende do cache do PostgREST)
+    const { data: assinaturaAtiva } = await supabase
+      .from('assinaturas')
+      .select('id')
+      .eq('comercio_id', data.id)
+      .eq('status', 'ativa')
+      .ilike('plano_slug', '%pro%')
+      .maybeSingle()
+
+    const plano = comercioDb?.plano || data.plano || ''
+    const temPlanoProDireto = !['publico', 'basico', 'basico_publico'].includes(plano) && (comercioDb?.comerciante_ativo ?? data.comerciante_ativo)
+    const tem_pro_ativo = !!assinaturaAtiva || temPlanoProDireto
 
     // Busca promoções ativas
     const { data: promocoes } = await supabase
@@ -94,7 +107,7 @@ async function comerciosRoutes(fastify) {
       .or('fim.is.null,fim.gt.' + new Date().toISOString())
       .order('criado_em', { ascending: false })
 
-    return { ...data, fotos: fotosGaleria, promocoes: promocoes || [] }
+    return { ...data, tem_pro_ativo, fotos: fotosGaleria, promocoes: promocoes || [] }
   })
 
   // GET /comercios/categorias — lista todas as categorias ativas
