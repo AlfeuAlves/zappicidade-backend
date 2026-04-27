@@ -144,12 +144,15 @@ async function adminRoutes(fastify) {
     }).eq('id', id)
 
     if (c.comercio_id) {
-      await supabaseAdmin.from('comercios').update({ verificado: true }).eq('id', c.comercio_id)
+      await supabaseAdmin.from('comercios').update({
+        verificado: true,
+        comerciante_ativo: true,
+      }).eq('id', c.comercio_id)
     }
 
     if (c.whatsapp) {
       sendText(c.whatsapp,
-        `Olá, ${c.nome_completo || 'comerciante'}! ✅ Sua conta no *ZappiCidade* foi *verificada com sucesso*!\n\nAcesse seu painel: ${process.env.FRONTEND_URL}/comerciante/dashboard`
+        `Olá, ${c.nome_completo || 'comerciante'}! ✅ Sua conta no *ZappiCidade* foi *aprovada*!\n\nAgora escolha seu plano e complete seu cadastro:\n${process.env.FRONTEND_URL}/comerciante/onboarding`
       ).catch(() => {})
     }
 

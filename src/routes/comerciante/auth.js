@@ -49,7 +49,7 @@ async function authRoutes(fastify) {
         comercio_id: comercio_id || null,
         ativo: true,
       })
-      .select('id, nome_completo, email, whatsapp, comercio_id')
+      .select('id, nome_completo, email, whatsapp, comercio_id, status_verificacao')
       .single()
 
     if (error) return reply.status(500).send({ erro: error.message })
@@ -80,7 +80,7 @@ async function authRoutes(fastify) {
 
     const { data: comerciante, error } = await supabaseAdmin
       .from('comerciantes')
-      .select('id, nome_completo, email, senha_hash, whatsapp, comercio_id, ativo')
+      .select('id, nome_completo, email, senha_hash, whatsapp, comercio_id, ativo, status_verificacao')
       .eq('email', email.toLowerCase())
       .single()
 

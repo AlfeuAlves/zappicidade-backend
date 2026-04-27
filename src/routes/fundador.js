@@ -103,11 +103,14 @@ async function fundadorRoutes(fastify) {
     // Busca dados do comerciante e comercio
     const { data: com } = await supabaseAdmin
       .from('comerciantes')
-      .select('id, nome_completo, email, whatsapp, comercio_id')
+      .select('id, nome_completo, email, whatsapp, comercio_id, status_verificacao')
       .eq('id', comerciante_id)
       .single()
 
     if (!com) return reply.status(404).send({ erro: 'Comerciante não encontrado' })
+    if (com.status_verificacao !== 'aprovado') {
+      return reply.status(403).send({ erro: 'Conta ainda não aprovada pelo administrador', codigo: 'nao_aprovado' })
+    }
 
     const comercio_id = com.comercio_id
     if (!comercio_id) return reply.status(400).send({ erro: 'Comerciante sem comércio vinculado' })
