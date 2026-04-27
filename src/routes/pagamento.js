@@ -79,7 +79,7 @@ async function pagamentoRoutes(fastify) {
     // Busca dados do comerciante
     const { data: com } = await supabaseAdmin
       .from('comerciantes')
-      .select('id, nome_completo, email, whatsapp')
+      .select('id, nome_completo, email, whatsapp, comercio_id')
       .eq('id', comerciante_id)
       .single()
 
@@ -123,6 +123,7 @@ async function pagamentoRoutes(fastify) {
       // Salva referência pendente no banco
       await supabaseAdmin.from('assinaturas').insert({
         comerciante_id,
+        comercio_id: com.comercio_id,
         plano_id: PRO_PLANO_ID,
         plano_slug: plano_id,
         status: 'pendente',
@@ -150,6 +151,7 @@ async function pagamentoRoutes(fastify) {
       fim.setDate(fim.getDate() + plano.dias)
       await supabaseAdmin.from('assinaturas').insert({
         comerciante_id,
+        comercio_id: com.comercio_id,
         plano_id: PRO_PLANO_ID,
         plano_slug: plano_id,
         status: 'pendente',
