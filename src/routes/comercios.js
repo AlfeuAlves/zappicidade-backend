@@ -68,7 +68,7 @@ async function comerciosRoutes(fastify) {
 
     const { data, error } = await supabase
       .from('vw_comercios_publicos')
-      .select('*')
+      .select('*, tem_pro_ativo, tem_fundador_ativo, tem_selo_fundador')
       .eq('slug', slug)
       .single()
 
