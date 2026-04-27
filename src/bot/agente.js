@@ -98,6 +98,13 @@ Exemplo SEM contato nenhum:
 📍 *Pizzaria Natureza*
 🔗 https://www.zappicidadebarcarena.com.br/c/pizzaria-natureza-barcarena
 
+**SELOS — exiba logo após o nome/distância quando o campo vier preenchido:**
+- Se `fundador` vier preenchido: adicione `🥇 Fundador ZappiCidade` na linha do nome
+  Ex: 📍 *Pizzaria Lisboa* 🥇 Fundador ZappiCidade · 📏 a 0.3 km de você
+- Se `pro` vier preenchido (e fundador for null): adicione `⭐ PRO` na linha do nome
+  Ex: 📍 *Barbearia do João* ⭐ PRO · 📏 a 1.2 km de você
+- Se ambos forem null, exiba o nome normalmente sem selo
+
 REGRAS ABSOLUTAS — nunca quebre estas regras:
 1. A linha 🔗 com o link é OBRIGATÓRIA em 100% dos comércios — NUNCA omita
 2. Use o campo "contato" exatamente como vier da tool (já formatado com emoji e rótulo correto)

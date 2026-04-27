@@ -222,6 +222,7 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
       aberto:            c.aberto_agora,
       avaliacao:         c.avaliacao,
       fundador:          c.tem_fundador_ativo ? '🥇 Fundador ZappiCidade' : null,
+      pro:               !c.tem_fundador_ativo && c.tem_pro_ativo ? '⭐ PRO' : null,
       promocao:          promoMap[c.id] ? {
         titulo:               promoMap[c.id].titulo,
         percentual_desconto:  promoMap[c.id].percentual_desconto,
