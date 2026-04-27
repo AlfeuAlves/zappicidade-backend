@@ -99,9 +99,9 @@ Exemplo SEM contato nenhum:
 🔗 https://www.zappicidadebarcarena.com.br/c/pizzaria-natureza-barcarena
 
 **SELOS — exiba logo após o nome/distância quando o campo vier preenchido:**
-- Se `fundador` vier preenchido: adicione `🥇 Fundador ZappiCidade` na linha do nome
+- Se o campo "fundador" vier preenchido: adicione 🥇 Fundador ZappiCidade na linha do nome
   Ex: 📍 *Pizzaria Lisboa* 🥇 Fundador ZappiCidade · 📏 a 0.3 km de você
-- Se `pro` vier preenchido (e fundador for null): adicione `⭐ PRO` na linha do nome
+- Se o campo "pro" vier preenchido (e fundador for null): adicione ⭐ PRO na linha do nome
   Ex: 📍 *Barbearia do João* ⭐ PRO · 📏 a 1.2 km de você
 - Se ambos forem null, exiba o nome normalmente sem selo
 
