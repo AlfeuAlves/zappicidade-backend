@@ -924,6 +924,113 @@ Qualquer dúvida, é só responder aqui. 😊
     return config
   })
 
+  // ── GET /admin/monetizacao ───────────────────────────────────
+  fastify.get('/monetizacao', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const [assinaturasRes, selosRes] = await Promise.all([
+      supabaseAdmin
+        .from('assinaturas')
+        .select('id, plano_slug, status, valor, criado_em'),
+      supabaseAdmin
+        .from('selos_fundador')
+        .select('id, status, valor_pago, criado_em'),
+    ])
+
+    const assinaturas = assinaturasRes.data || []
+    const selos       = selosRes.data || []
+
+    const ativas = assinaturas.filter(a => a.status === 'ativa')
+    const mrr    = ativas
+      .filter(a => a.plano_slug?.includes('mensal'))
+      .reduce((s, a) => s + (Number(a.valor) || 0), 0)
+
+    const totalAssinaturas = ativas.reduce((s, a) => s + (Number(a.valor) || 0), 0)
+    const totalFundadores  = selos
+      .filter(s => s.status === 'ativo')
+      .reduce((s, f) => s + (Number(f.valor_pago) || 0), 0)
+
+    const porPlano = {}
+    for (const a of ativas) {
+      const k = a.plano_slug || 'desconhecido'
+      porPlano[k] = (porPlano[k] || 0) + 1
+    }
+
+    return {
+      mrr: Number(mrr.toFixed(2)),
+      total_arrecadado: Number((totalAssinaturas + totalFundadores).toFixed(2)),
+      assinaturas_ativas: ativas.length,
+      selos_fundador_ativos: selos.filter(s => s.status === 'ativo').length,
+      selos_fundador_pendentes: selos.filter(s => s.status === 'pendente').length,
+      por_plano: porPlano,
+    }
+  })
+
+  // ── GET /admin/monetizacao/pagamentos ────────────────────────
+  fastify.get('/monetizacao/pagamentos', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const page   = Math.max(1, parseInt(req.query.page  || '1'))
+    const limit  = Math.min(50, parseInt(req.query.limit || '20'))
+    const offset = (page - 1) * limit
+    const status = req.query.status || ''
+    const tipo   = req.query.tipo   || ''   // 'assinatura' | 'fundador'
+
+    const pagamentos = []
+
+    if (!tipo || tipo === 'assinatura') {
+      let q = supabaseAdmin
+        .from('assinaturas')
+        .select('id, plano_slug, status, valor, criado_em, fim, comerciante_id, comercio_id, comerciantes(nome_completo, whatsapp), comercios(nome, slug)')
+        .order('criado_em', { ascending: false })
+      if (status) q = q.eq('status', status)
+
+      const { data } = await q
+      for (const a of data || []) {
+        pagamentos.push({
+          id:          a.id,
+          tipo:        'assinatura',
+          comercio:    a.comercios?.nome    || '—',
+          comercio_slug: a.comercios?.slug  || '',
+          comerciante: a.comerciantes?.nome_completo || '—',
+          whatsapp:    a.comerciantes?.whatsapp || '',
+          plano:       a.plano_slug || '—',
+          valor:       Number(a.valor) || 0,
+          status:      a.status,
+          data:        a.criado_em,
+          fim:         a.fim || null,
+        })
+      }
+    }
+
+    if (!tipo || tipo === 'fundador') {
+      let q = supabaseAdmin
+        .from('selos_fundador')
+        .select('id, status, valor_pago, criado_em, beneficio_fim, comerciante_id, comercio_id, comerciantes(nome_completo, whatsapp), comercios(nome, slug), categorias(nome)')
+        .order('criado_em', { ascending: false })
+      if (status) q = q.eq('status', status)
+
+      const { data } = await q
+      for (const f of data || []) {
+        pagamentos.push({
+          id:          f.id,
+          tipo:        'fundador',
+          comercio:    f.comercios?.nome    || '—',
+          comercio_slug: f.comercios?.slug  || '',
+          comerciante: f.comerciantes?.nome_completo || '—',
+          whatsapp:    f.comerciantes?.whatsapp || '',
+          plano:       'Fundador — ' + (f.categorias?.nome || ''),
+          valor:       Number(f.valor_pago) || 0,
+          status:      f.status,
+          data:        f.criado_em,
+          fim:         f.beneficio_fim || null,
+        })
+      }
+    }
+
+    pagamentos.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+    const total = pagamentos.length
+    const slice = pagamentos.slice(offset, offset + limit)
+
+    return { data: slice, total, page, limit }
+  })
+
   fastify.get('/verificar/:token', async (req, reply) => {
     const { token } = req.params
     const rejeitar  = req.query.rejeitar === 'true'
