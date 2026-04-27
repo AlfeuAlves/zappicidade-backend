@@ -1,7 +1,7 @@
 // ============================================================
 // ROTAS PÚBLICAS — Comércios
 // ============================================================
-const { supabase } = require('../config/supabase')
+const { supabase, supabaseAdmin } = require('../config/supabase')
 
 async function comerciosRoutes(fastify) {
 
@@ -85,8 +85,8 @@ async function comerciosRoutes(fastify) {
 
     const fotosGaleria = (comercioDb?.fotos_galeria || []).filter(Boolean)
 
-    // Calcula tem_pro_ativo diretamente (não depende do cache do PostgREST)
-    const { data: assinaturaAtiva } = await supabase
+    // Calcula tem_pro_ativo diretamente (usa admin para bypassar RLS)
+    const { data: assinaturaAtiva } = await supabaseAdmin
       .from('assinaturas')
       .select('id')
       .eq('comercio_id', data.id)
