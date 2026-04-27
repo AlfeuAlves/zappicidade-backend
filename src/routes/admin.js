@@ -115,7 +115,8 @@ async function adminRoutes(fastify) {
       .select(`
         id, nome_completo, email, whatsapp, ativo,
         status_verificacao, criado_em, ultimo_acesso, comercio_id,
-        comercios ( id, nome, slug )
+        comercios ( id, nome, slug ),
+        assinaturas ( plano_slug, status )
       `, { count: 'exact' })
       .order('criado_em', { ascending: false })
       .range(offset, offset + parseInt(limit) - 1)
