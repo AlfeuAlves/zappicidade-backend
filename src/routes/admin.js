@@ -2,6 +2,7 @@
 // ROTAS ADMIN — Painel do fundador
 // ============================================================
 const { supabaseAdmin } = require('../config/supabase')
+const rankingConfig     = require('../config/rankingConfig')
 const { sendText }      = require('../bot/zapi')
 const https             = require('https')
 const crypto            = require('crypto')
@@ -908,6 +909,18 @@ Qualquer dúvida, é só responder aqui. 😊
   })
 
   // ── GET /admin/verificar/:token (link via WhatsApp — legado) ──
+  // ── GET /admin/ranking-config ────────────────────────────
+  fastify.get('/ranking-config', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const config = await rankingConfig.lerConfig()
+    return config
+  })
+
+  // ── POST /admin/ranking-config ───────────────────────────
+  fastify.post('/ranking-config', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const config = await rankingConfig.salvarConfig(req.body)
+    return config
+  })
+
   fastify.get('/verificar/:token', async (req, reply) => {
     const { token } = req.params
     const rejeitar  = req.query.rejeitar === 'true'

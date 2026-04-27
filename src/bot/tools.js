@@ -136,6 +136,8 @@ function semAcento(str) {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
+const rankingConfig = require('../config/rankingConfig')
+
 async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp, plano_pago, limit = 5, offset = 0 }, localizacao = null) {
   limit = Math.min(limit, 10)
 
@@ -173,11 +175,17 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
           : 999
       }))
       .sort((a, b) => {
-        // 1º Fundador ativo, 2º plano pago, 3º aberto agora, 4º distância
+        const cfg = rankingConfig.getConfig()
+        // Fixos (sempre): 1º Fundador, 2º PRO
         if (b.tem_fundador_ativo !== a.tem_fundador_ativo) return (b.tem_fundador_ativo ? 1 : 0) - (a.tem_fundador_ativo ? 1 : 0)
-        if (b.plano_pago !== a.plano_pago) return (b.plano_pago ? 1 : 0) - (a.plano_pago ? 1 : 0)
-        if (b.aberto_agora !== a.aberto_agora) return (b.aberto_agora ? 1 : 0) - (a.aberto_agora ? 1 : 0)
-        return a.distancia_km - b.distancia_km
+        if (b.tem_pro_ativo !== a.tem_pro_ativo)           return (b.tem_pro_ativo      ? 1 : 0) - (a.tem_pro_ativo      ? 1 : 0)
+        // Configuráveis
+        if (cfg.plano_pago   && b.plano_pago    !== a.plano_pago)    return (b.plano_pago    ? 1 : 0) - (a.plano_pago    ? 1 : 0)
+        if (cfg.aberto_agora && b.aberto_agora  !== a.aberto_agora)  return (b.aberto_agora  ? 1 : 0) - (a.aberto_agora  ? 1 : 0)
+        if (cfg.proximidade_bairro) return a.distancia_km - b.distancia_km
+        if (cfg.tem_whatsapp && b.whatsapp !== a.whatsapp)           return (b.whatsapp ? 1 : 0) - (a.whatsapp ? 1 : 0)
+        if (cfg.avaliacoes)  return (b.avaliacao || 0) - (a.avaliacao || 0)
+        return 0
       })
       .slice(offset, offset + limit)
   }
