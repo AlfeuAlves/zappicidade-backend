@@ -1121,6 +1121,66 @@ Dúvidas? É só responder aqui.
       </body></html>
     `)
   })
+
+  // ── GET /admin/analytics — visão geral de todos os comércios ─
+  fastify.get('/analytics', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { periodo = '30d' } = req.query
+    const diasMap = { '7d': 7, '30d': 30, '90d': 90 }
+    const dias = diasMap[periodo] || 30
+    const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString()
+
+    const [eventos, comerciosRes] = await Promise.all([
+      supabaseAdmin.from('eventos_comercio')
+        .select('comercio_id, tipo, termo_busca')
+        .gte('criado_em', desde),
+      supabaseAdmin.from('comercios')
+        .select('id, nome, slug')
+        .eq('status_operacional', 'ativo'),
+    ])
+
+    const rows = eventos.data || []
+    const comerciosMap = {}
+    ;(comerciosRes.data || []).forEach(c => { comerciosMap[c.id] = c })
+
+    // Totais gerais
+    const totais = {
+      impressoes:    rows.filter(r => r.tipo === 'impressao').length,
+      cliques_whatsapp: rows.filter(r => r.tipo === 'clique_whatsapp').length,
+      cliques_perfil:   rows.filter(r => r.tipo === 'clique_perfil').length,
+    }
+
+    // Ranking por comércio
+    const por_comercio = {}
+    rows.forEach(r => {
+      if (!por_comercio[r.comercio_id]) por_comercio[r.comercio_id] = { impressoes: 0, cliques_whatsapp: 0, cliques_perfil: 0 }
+      if (r.tipo === 'impressao')       por_comercio[r.comercio_id].impressoes++
+      if (r.tipo === 'clique_whatsapp') por_comercio[r.comercio_id].cliques_whatsapp++
+      if (r.tipo === 'clique_perfil')   por_comercio[r.comercio_id].cliques_perfil++
+    })
+
+    const ranking = Object.entries(por_comercio)
+      .map(([id, stats]) => ({
+        comercio_id: id,
+        nome: comerciosMap[id]?.nome || 'Desconhecido',
+        slug: comerciosMap[id]?.slug || '',
+        ...stats,
+        total_interacoes: stats.cliques_whatsapp + stats.cliques_perfil,
+      }))
+      .sort((a, b) => b.impressoes - a.impressoes)
+      .slice(0, 50)
+
+    // Top termos de busca globais
+    const freq = {}
+    rows.filter(r => r.tipo === 'impressao' && r.termo_busca).forEach(r => {
+      freq[r.termo_busca] = (freq[r.termo_busca] || 0) + 1
+    })
+    const top_termos = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([termo, count]) => ({ termo, count }))
+
+    return { periodo, totais, ranking, top_termos }
+  })
 }
 
 module.exports = adminRoutes

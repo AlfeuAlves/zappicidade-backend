@@ -313,6 +313,71 @@ async function perfilRoutes(fastify) {
 
     return { ok: true, comercio }
   })
+  // ── GET /comerciante/analytics — stats de visibilidade ──────
+  fastify.get('/analytics', { preHandler: autenticar }, async (req, reply) => {
+    const { comercio_id } = req.comerciante
+    if (!comercio_id) return reply.status(400).send({ erro: 'Sem comércio vinculado' })
+
+    const { periodo = '30d' } = req.query
+    const diasMap = { '7d': 7, '30d': 30, '90d': 90 }
+    const dias = diasMap[periodo] || 30
+    const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString()
+    const desdeAnterior = new Date(Date.now() - dias * 2 * 24 * 60 * 60 * 1000).toISOString()
+
+    const [atual, anterior, termos] = await Promise.all([
+      // Período atual — contagem por tipo
+      supabaseAdmin.from('eventos_comercio')
+        .select('tipo')
+        .eq('comercio_id', comercio_id)
+        .gte('criado_em', desde),
+
+      // Período anterior — para comparativo
+      supabaseAdmin.from('eventos_comercio')
+        .select('tipo')
+        .eq('comercio_id', comercio_id)
+        .gte('criado_em', desdeAnterior)
+        .lt('criado_em', desde),
+
+      // Termos de busca mais comuns
+      supabaseAdmin.from('eventos_comercio')
+        .select('termo_busca')
+        .eq('comercio_id', comercio_id)
+        .eq('tipo', 'impressao')
+        .not('termo_busca', 'is', null)
+        .gte('criado_em', desde)
+        .order('criado_em', { ascending: false })
+        .limit(500),
+    ])
+
+    const contar = (rows, tipo) => (rows || []).filter(r => r.tipo === tipo).length
+
+    const atual_impressoes   = contar(atual.data, 'impressao')
+    const atual_whatsapp     = contar(atual.data, 'clique_whatsapp')
+    const atual_perfil       = contar(atual.data, 'clique_perfil')
+    const ant_impressoes     = contar(anterior.data, 'impressao')
+    const ant_whatsapp       = contar(anterior.data, 'clique_whatsapp')
+    const ant_perfil         = contar(anterior.data, 'clique_perfil')
+
+    const variacao = (atual, ant) => ant === 0 ? null : Math.round(((atual - ant) / ant) * 100)
+
+    // Top termos de busca
+    const freq = {}
+    ;(termos.data || []).forEach(r => {
+      if (r.termo_busca) freq[r.termo_busca] = (freq[r.termo_busca] || 0) + 1
+    })
+    const top_termos = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([termo, count]) => ({ termo, count }))
+
+    return {
+      periodo,
+      impressoes:   { total: atual_impressoes,  variacao: variacao(atual_impressoes, ant_impressoes) },
+      whatsapp:     { total: atual_whatsapp,     variacao: variacao(atual_whatsapp, ant_whatsapp) },
+      perfil:       { total: atual_perfil,       variacao: variacao(atual_perfil, ant_perfil) },
+      top_termos,
+    }
+  })
 }
 
 module.exports = perfilRoutes

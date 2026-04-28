@@ -150,6 +150,16 @@ async function comerciosRoutes(fastify) {
       meta: { total: count, page, limit, paginas: Math.ceil(count / limit) }
     }
   })
+  // ── POST /comercios/evento — tracking público (sem auth) ────
+  fastify.post('/evento', async (req, reply) => {
+    const { comercio_id, tipo, termo_busca } = req.body || {}
+    if (!comercio_id || !tipo) return reply.status(400).send({ erro: 'comercio_id e tipo obrigatórios' })
+    const tiposValidos = ['impressao', 'clique_whatsapp', 'clique_perfil']
+    if (!tiposValidos.includes(tipo)) return reply.status(400).send({ erro: 'tipo inválido' })
+
+    await supabaseAdmin.from('eventos_comercio').insert({ comercio_id, tipo, termo_busca: termo_busca || null })
+    return reply.status(201).send({ ok: true })
+  })
 }
 
 module.exports = comerciosRoutes
