@@ -3,6 +3,7 @@
 // ============================================================
 const { supabaseAdmin } = require('../../config/supabase')
 const bcrypt = require('bcrypt')
+const { sendText } = require('../../bot/zapi')
 
 async function authRoutes(fastify) {
 
@@ -150,12 +151,19 @@ async function authRoutes(fastify) {
       .update({ reset_token: token, reset_token_expira: new Date(Date.now() + 3600000).toISOString() })
       .eq('id', comerciante.id)
 
-    // TODO: Enviar e-mail com link de redefinição
-    // await enviarEmail(comerciante.email, token)
+    // Envia link de redefinição via WhatsApp
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'https://painel.zappicidadebarcarena.com.br'
+    const linkReset = `${FRONTEND_URL}/comerciante/redefinir-senha?token=${token}`
+
+    if (comerciante.whatsapp) {
+      const tel = comerciante.whatsapp.replace(/\D/g, '')
+      const msg = `Olá, ${comerciante.nome || 'comerciante'}! 👋\n\nRecebemos uma solicitação para redefinir a senha da sua conta no *ZappiCidade*.\n\nClique no link abaixo para criar uma nova senha (válido por 1 hora):\n${linkReset}\n\nSe não foi você quem solicitou, ignore esta mensagem. Sua senha permanece a mesma.`
+      await sendText(tel, msg).catch(e => fastify.log.warn('Falha ao enviar WhatsApp reset senha:', e))
+    }
 
     fastify.log.info(`Reset de senha solicitado para: ${comerciante.email}`)
 
-    return { ok: true, mensagem: 'Se o e-mail existir, você receberá um link em breve.' }
+    return { ok: true, mensagem: 'Se o cadastro existir, você receberá o link pelo WhatsApp em instantes.' }
   })
 
   // POST /auth/redefinir-senha — redefine a senha com token
