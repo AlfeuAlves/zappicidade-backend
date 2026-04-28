@@ -855,41 +855,87 @@ async function adminRoutes(fastify) {
 
       const categoria = c.categorias?.nome || 'estabelecimento'
       const linkPerfil = `${SITE_BASE}/${c.slug}`
+      const exemplosBusca = {
+        'Farmácias': ['Farmácia aberta agora perto de mim?', 'Onde comprar remédio em Barcarena?', 'Tem farmácia de plantão hoje?'],
+        'Restaurantes': ['Restaurante que serve marmita hoje?', 'Onde almoçar bem em Barcarena?', 'Tem self-service aberto agora?'],
+        'Padarias': ['Padaria aberta cedo em Barcarena?', 'Onde tem pão fresquinho agora?', 'Padaria que entrega em Barcarena?'],
+        'Supermercados': ['Supermercado mais perto de mim?', 'Onde fazer compras em Barcarena?', 'Tem supermercado aberto agora?'],
+      }
+      const buscasCategoria = exemplosBusca[categoria] || [`Onde tem ${categoria.toLowerCase()} em Barcarena?`, `Melhor ${categoria.toLowerCase()} de Barcarena?`, `${categoria} aberto agora em Barcarena?`]
+      const exemploBusca = buscasCategoria[Math.floor(Math.random() * buscasCategoria.length)]
 
-      const mensagem = `Olá! 👋
+      const variantes = [
+        // Variante 1 — foco no bot
+        `Olá! 👋
 
-Somos o *ZappiCidade* — o assistente digital de Barcarena pelo WhatsApp.
+Somos o *ZappiCidade*, o guia comercial digital de Barcarena.
 
-Antes de tudo, *experimente agora mesmo* como os moradores nos usam:
+Os moradores usam nosso assistente no WhatsApp pra encontrar comércios como o *${c.nome}* — e ele já aparece nas buscas! 🎉
+
+Experimente como funciona:
 👉 https://zappicidadebarcarena.com.br/zappi
 
-Manda uma mensagem lá e veja como funciona! É bem simples 😊
-
-━━━━━━━━━━━━━━━━━
-🏪 *Sobre o ${c.nome}*
-
-Boa notícia: *${c.nome}* já está cadastrado e aparece nas buscas dos moradores de Barcarena! 🎉
-
-Os moradores perguntam ao nosso assistente coisas como:
-• _"${categoria === 'Farmácias' ? 'Farmácia aberta agora perto de mim?' : categoria === 'Restaurantes' ? 'Restaurante que serve marmita hoje?' : `Onde tem ${categoria.toLowerCase()} em Barcarena?`}"_
-
-E a IA indica os melhores — incluindo o seu estabelecimento! 🤖
-
-📍 Veja seu perfil:
+📍 Veja o perfil do seu negócio:
 ${linkPerfil}
 
-━━━━━━━━━━━━━━━━━
+Com uma conta grátis você pode editar horários, adicionar foto e receber mais clientes:
+👉 ${PAINEL_URL}
 
-Quer aparecer ainda mais? Com uma conta gratuita você pode:
-✅ Editar horários de funcionamento
-✅ Adicionar foto e descrição
-✅ Receber contatos de clientes direto
+Qualquer dúvida é só responder. 😊
+— Equipe ZappiCidade`,
 
-👉 Cadastre-se grátis:
+        // Variante 2 — foco no perfil já criado
+        `Oi! Tudo bem? 😊
+
+Aqui é a equipe do *ZappiCidade* — o assistente de Barcarena pelo WhatsApp.
+
+Tenho uma boa notícia: o *${c.nome}* já tem um perfil criado no nosso guia e está aparecendo pra moradores que buscam ${categoria.toLowerCase()} por aqui! 🏪
+
+📍 Confira:
+${linkPerfil}
+
+Quer experimentar como os moradores nos usam?
+👉 https://zappicidadebarcarena.com.br/zappi
+
+Com cadastro gratuito você completa o perfil e aparece ainda mais:
 ${PAINEL_URL}
 
-Qualquer dúvida, é só responder aqui. 😊
-— Equipe ZappiCidade`
+— Equipe ZappiCidade`,
+
+        // Variante 3 — foco na busca do morador
+        `Olá! 👋
+
+Sabia que moradores de Barcarena perguntam ao *ZappiCidade* coisas como:
+_"${exemploBusca}"_
+
+E o *${c.nome}* já é um dos indicados! 🤖✅
+
+Veja seu perfil:
+📍 ${linkPerfil}
+
+Quer conhecer o assistente?
+👉 https://zappicidadebarcarena.com.br/zappi
+
+Com uma conta grátis você edita horários, adiciona foto e recebe contatos de clientes direto:
+${PAINEL_URL}
+
+— Equipe ZappiCidade`,
+
+        // Variante 4 — mais direta e curta
+        `Oi! 😊 Aqui é o *ZappiCidade*.
+
+O *${c.nome}* já está cadastrado no nosso guia digital de Barcarena e aparece nas buscas dos moradores pelo WhatsApp! 🎉
+
+📍 ${linkPerfil}
+
+Acesse grátis e complete seu perfil — adicione foto, horários e receba mais clientes:
+👉 ${PAINEL_URL}
+
+Dúvidas? É só responder aqui.
+— Equipe ZappiCidade`,
+      ]
+
+      const mensagem = variantes[i % variantes.length]
 
       try {
         await sendText(tel, mensagem)
