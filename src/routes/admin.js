@@ -2,6 +2,7 @@
 // ROTAS ADMIN — Painel do fundador
 // ============================================================
 const { supabaseAdmin } = require('../config/supabase')
+const logger = require('../lib/logger')
 const rankingConfig     = require('../config/rankingConfig')
 const { sendText }      = require('../bot/zapi')
 const https             = require('https')
@@ -48,6 +49,7 @@ async function adminRoutes(fastify) {
       { sub: 'admin', role: 'admin', email: adminEmail },
       { expiresIn: '7d' }
     )
+    logger.info('auth', `Login admin: ${adminEmail}`, null, null, 'admin')
     return { ok: true, token, email: adminEmail }
   })
 
@@ -156,6 +158,7 @@ async function adminRoutes(fastify) {
       ).catch(() => {})
     }
 
+    logger.info('aprovacao', `Comerciante aprovado: ${c.nome_completo || id}`, { comercio_id: c.comercio_id }, id, 'comerciante')
     return { ok: true }
   })
 
@@ -177,6 +180,7 @@ async function adminRoutes(fastify) {
       ).catch(() => {})
     }
 
+    logger.aviso('aprovacao', `Comerciante rejeitado: ${c.nome_completo || id}`, { motivo: motivo || null }, id, 'comerciante')
     return { ok: true }
   })
 
@@ -954,6 +958,7 @@ Dúvidas? É só responder aqui.
     log.ultimo_envio = new Date().toISOString()
     await salvarLogProspeccao(log)
 
+    logger.info('prospeccao', `Prospecção concluída: ${enviados} enviados, ${falhas} falhas de ${candidatos.length} candidatos`, { enviados, falhas, total_candidatos: candidatos.length, limite: limiteNum, delay_ms: delayMs })
     return { ok: true, enviados, falhas, total_candidatos: candidatos.length }
   })
 
@@ -1120,6 +1125,24 @@ Dúvidas? É só responder aqui.
         <br><a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/dashboard" style="color:#16A34A;font-weight:600">← Ir para o painel admin</a>
       </body></html>
     `)
+  })
+
+  // ── GET /admin/logs ───────────────────────────────────────────
+  fastify.get('/logs', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { nivel, categoria, limite = 100, offset = 0 } = req.query
+
+    let query = supabaseAdmin
+      .from('logs_sistema')
+      .select('*', { count: 'exact' })
+      .order('criado_em', { ascending: false })
+      .range(Number(offset), Number(offset) + Number(limite) - 1)
+
+    if (nivel) query = query.eq('nivel', nivel)
+    if (categoria) query = query.eq('categoria', categoria)
+
+    const { data, error, count } = await query
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { data, total: count }
   })
 
   // ── GET /admin/analytics — visão geral de todos os comércios ─

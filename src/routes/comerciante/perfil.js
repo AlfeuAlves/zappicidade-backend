@@ -3,6 +3,7 @@
 // ============================================================
 const { supabaseAdmin } = require('../../config/supabase')
 const { autenticar } = require('../../middleware/auth')
+const logger = require('../../lib/logger')
 const { sendText } = require('../../bot/zapi')
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
@@ -227,6 +228,7 @@ async function perfilRoutes(fastify) {
       )
     }
 
+    logger.info('aprovacao', `Solicitação de vínculo: ${comerciante?.nome_completo || id} → ${comercio.nome}`, { comercio_id, comercio_nome: comercio.nome }, id, 'comerciante')
     return { ok: true, mensagem: `Solicitação enviada! Aguarde a verificação — você será notificado pelo WhatsApp.` }
   })
 

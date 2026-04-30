@@ -4,6 +4,7 @@
 const { supabaseAdmin } = require('../../config/supabase')
 const bcrypt = require('bcrypt')
 const { sendText } = require('../../bot/zapi')
+const logger = require('../../lib/logger')
 
 async function authRoutes(fastify) {
 
@@ -33,6 +34,7 @@ async function authRoutes(fastify) {
       .single()
 
     if (existe) {
+      logger.aviso('auth', `Tentativa de registro com e-mail já cadastrado: ${email}`)
       return reply.status(409).send({ erro: 'E-mail já cadastrado' })
     }
 
@@ -61,6 +63,7 @@ async function authRoutes(fastify) {
       { expiresIn: '30d' }
     )
 
+    logger.info('auth', `Novo comerciante registrado: ${comerciante.email}`, { nome: comerciante.nome_completo }, comerciante.id, 'comerciante')
     return reply.status(201).send({ ok: true, token, comerciante })
   })
 
@@ -86,15 +89,18 @@ async function authRoutes(fastify) {
       .single()
 
     if (error || !comerciante) {
+      logger.aviso('auth', `Falha de login — e-mail não encontrado: ${email}`)
       return reply.status(401).send({ erro: 'E-mail ou senha incorretos' })
     }
 
     if (!comerciante.ativo) {
+      logger.aviso('auth', `Login bloqueado — conta suspensa: ${email}`, null, comerciante.id, 'comerciante')
       return reply.status(403).send({ erro: 'Conta suspensa. Entre em contato com o suporte.' })
     }
 
     const senhaCorreta = await bcrypt.compare(senha, comerciante.senha_hash)
     if (!senhaCorreta) {
+      logger.aviso('auth', `Falha de login — senha incorreta: ${email}`, null, comerciante.id, 'comerciante')
       return reply.status(401).send({ erro: 'E-mail ou senha incorretos' })
     }
 
@@ -111,6 +117,7 @@ async function authRoutes(fastify) {
 
     const { senha_hash, ...dadosPublicos } = comerciante
 
+    logger.info('auth', `Login bem-sucedido: ${comerciante.email}`, null, comerciante.id, 'comerciante')
     return { ok: true, token, comerciante: dadosPublicos }
   })
 
@@ -161,7 +168,7 @@ async function authRoutes(fastify) {
       await sendText(tel, msg).catch(e => fastify.log.warn('Falha ao enviar WhatsApp reset senha:', e))
     }
 
-    fastify.log.info(`Reset de senha solicitado para: ${comerciante.email}`)
+    logger.info('auth', `Reset de senha solicitado: ${comerciante.email}`, { tem_whatsapp: !!comerciante.whatsapp }, comerciante.id, 'comerciante')
 
     return { ok: true, mensagem: 'Se o cadastro existir, você receberá o link pelo WhatsApp em instantes.' }
   })
@@ -201,6 +208,7 @@ async function authRoutes(fastify) {
 
     if (error) return reply.status(500).send({ erro: error.message })
 
+    logger.info('auth', `Senha redefinida com sucesso para comerciante: ${payload.sub}`, null, payload.sub, 'comerciante')
     return { ok: true, mensagem: 'Senha redefinida com sucesso' }
   })
 }
