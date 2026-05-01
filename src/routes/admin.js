@@ -860,10 +860,10 @@ async function adminRoutes(fastify) {
       const LOGO_URL = process.env.PROSPECCAO_LOGO_URL || 'https://cdondpsnszpwruflagyt.supabase.co/storage/v1/object/public/comercios/LOGOMENSAGEM.png'
 
       const legendas = [
-        `Oi! 👋 O *${c.nome}* já aparece no *ZappiCidade* — o guia comercial de Barcarena pelo WhatsApp.\n\nMoradores buscam negócios como o seu todos os dias por aqui. Cadastre-se grátis e complete seu perfil! 🚀`,
-        `Olá! 😊 O *${c.nome}* já está no *ZappiCidade*, o guia digital de Barcarena.\n\nQuem busca por aqui encontra seu negócio. Acesse grátis e adicione foto, horários e muito mais! 🏪`,
-        `Oi! O *ZappiCidade* é o guia de Barcarena pelo WhatsApp — e o *${c.nome}* já faz parte! 🎉\n\nComplete seu perfil gratuitamente e alcance mais clientes na sua cidade!`,
-        `Olá! 👋 Moradores de Barcarena usam o *ZappiCidade* pra encontrar negócios como o *${c.nome}* todos os dias.\n\nCadastre-se grátis e mostre seus horários, fotos e contato! ✅`,
+        `Oi! 👋 Aqui é a equipe do *ZappiCidade*.\n\nSomos um assistente no WhatsApp onde moradores de Barcarena buscam comércios locais — restaurantes, farmácias, mercados e muito mais.\n\nO *${c.nome}* já aparece nas nossas buscas! Cadastre-se grátis e complete seu perfil para atrair ainda mais clientes. 🚀`,
+        `Olá! 😊 Somos o *ZappiCidade* — o guia comercial de Barcarena que funciona direto pelo WhatsApp.\n\nQuando um morador pergunta "onde tem ${c.categorias?.nome?.toLowerCase() || 'comércio'} em Barcarena?", nosso assistente indica negócios como o *${c.nome}*.\n\nCom cadastro grátis você adiciona foto, horários e aparece com destaque! 🏪`,
+        `Oi! O *ZappiCidade* é o assistente de Barcarena pelo WhatsApp: moradores digitam o que precisam e recebem indicações de comércios locais na hora. 🤖\n\nO *${c.nome}* já faz parte do nosso guia! Acesse grátis, complete seu perfil e seja encontrado com mais facilidade. 🎉`,
+        `Olá! 👋 Aqui é o *ZappiCidade*, o guia digital de Barcarena.\n\nFuncionamos pelo WhatsApp: o morador manda uma mensagem buscando um produto ou serviço e nosso assistente indica os melhores comércios da cidade — incluindo o *${c.nome}*!\n\nCadastre-se grátis e mostre horários, fotos e contato atualizado. ✅`,
       ]
 
       const legenda = legendas[i % legendas.length]
