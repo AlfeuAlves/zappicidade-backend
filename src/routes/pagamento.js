@@ -27,7 +27,7 @@ async function pagamentoRoutes(fastify) {
     const { plano_id, cpf } = req.body
     const { id: comerciante_id } = req.comerciante
 
-    fastify.log.info(`[checkout] plano_id=${plano_id} comerciante_id=${comerciante_id} ASAAS_KEY=${ASAAS_KEY ? 'ok' : 'MISSING'}`)
+    fastify.log.info(`[checkout] plano_id=${plano_id} comerciante_id=${comerciante_id}`)
 
     const plano = PLANOS[plano_id]
     if (!plano) return reply.status(400).send({ erro: 'Plano inválido' })
