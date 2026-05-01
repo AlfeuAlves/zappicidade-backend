@@ -860,10 +860,10 @@ async function adminRoutes(fastify) {
       const LOGO_URL = process.env.PROSPECCAO_LOGO_URL || 'https://cdondpsnszpwruflagyt.supabase.co/storage/v1/object/public/comercios/LOGOMENSAGEM.png'
 
       const legendas = [
-        `Oi! 👋 Aqui é a equipe do *ZappiCidade*.\n\nSomos um assistente no WhatsApp onde moradores de Barcarena buscam comércios locais — restaurantes, farmácias, mercados e muito mais.\n\nO *${c.nome}* já aparece nas nossas buscas! Cadastre-se grátis e complete seu perfil para atrair ainda mais clientes. 🚀`,
-        `Olá! 😊 Somos o *ZappiCidade* — o guia comercial de Barcarena que funciona direto pelo WhatsApp.\n\nQuando um morador pergunta "onde tem ${c.categorias?.nome?.toLowerCase() || 'comércio'} em Barcarena?", nosso assistente indica negócios como o *${c.nome}*.\n\nCom cadastro grátis você adiciona foto, horários e aparece com destaque! 🏪`,
-        `Oi! O *ZappiCidade* é o assistente de Barcarena pelo WhatsApp: moradores digitam o que precisam e recebem indicações de comércios locais na hora. 🤖\n\nO *${c.nome}* já faz parte do nosso guia! Acesse grátis, complete seu perfil e seja encontrado com mais facilidade. 🎉`,
-        `Olá! 👋 Aqui é o *ZappiCidade*, o guia digital de Barcarena.\n\nFuncionamos pelo WhatsApp: o morador manda uma mensagem buscando um produto ou serviço e nosso assistente indica os melhores comércios da cidade — incluindo o *${c.nome}*!\n\nCadastre-se grátis e mostre horários, fotos e contato atualizado. ✅`,
+        `Oi! 👋 Aqui é a equipe do *ZappiCidade*.\n\nSomos um assistente no WhatsApp onde moradores de Barcarena buscam comércios locais — restaurantes, farmácias, mercados e muito mais.\n\nO *${c.nome}* já aparece nas nossas buscas! Cadastre-se grátis e complete seu perfil para atrair ainda mais clientes. 🚀\n\n👉 ${PAINEL_URL}`,
+        `Olá! 😊 Somos o *ZappiCidade* — o guia comercial de Barcarena que funciona direto pelo WhatsApp.\n\nQuando um morador pergunta "onde tem ${c.categorias?.nome?.toLowerCase() || 'comércio'} em Barcarena?", nosso assistente indica negócios como o *${c.nome}*.\n\nCom cadastro grátis você adiciona foto, horários e aparece com destaque! 🏪\n\n👉 ${PAINEL_URL}`,
+        `Oi! O *ZappiCidade* é o assistente de Barcarena pelo WhatsApp: moradores digitam o que precisam e recebem indicações de comércios locais na hora. 🤖\n\nO *${c.nome}* já faz parte do nosso guia! Acesse grátis, complete seu perfil e seja encontrado com mais facilidade. 🎉\n\n👉 ${PAINEL_URL}`,
+        `Olá! 👋 Aqui é o *ZappiCidade*, o guia digital de Barcarena.\n\nFuncionamos pelo WhatsApp: o morador manda uma mensagem buscando um produto ou serviço e nosso assistente indica os melhores comércios da cidade — incluindo o *${c.nome}*!\n\nCadastre-se grátis e mostre horários, fotos e contato atualizado. ✅\n\n👉 ${PAINEL_URL}`,
       ]
 
       const legenda = legendas[i % legendas.length]
