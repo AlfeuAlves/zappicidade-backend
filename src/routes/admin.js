@@ -874,7 +874,7 @@ async function adminRoutes(fastify) {
         } else {
           await sendText(tel, legenda)
         }
-        await sendButtonUrl(tel, ' ', '— Equipe ZappiCidade', '🟢 QUERO CADASTRAR GRÁTIS!', PAINEL_URL)
+        await sendButtonUrl(tel, ' ', '— Equipe ZappiCidade', 'QUERO CADASTRAR GRÁTIS', PAINEL_URL)
         log.enviados.push({ id: c.id, nome: c.nome, telefone: tel, enviado_em: new Date().toISOString() })
         await salvarLogProspeccao(log)
         enviados++
