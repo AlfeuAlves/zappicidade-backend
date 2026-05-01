@@ -4,8 +4,7 @@
 const { supabaseAdmin } = require('../config/supabase')
 const { autenticar } = require('../middleware/auth')
 
-const ASAAS_KEY = process.env.ASAAS_API_KEY
-const ASAAS_URL = process.env.ASAAS_BASE_URL || 'https://sandbox.asaas.com/api/v3'
+const { asaas, buscarOuCriarCustomer } = require('../lib/asaas')
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://painel.zappicidadebarcarena.com.br'
 
@@ -20,42 +19,6 @@ const PLANOS = {
   pro_12meses: { valor: 479.90, label: 'PRO 12 Meses',   dias: 365,  ciclo: null },
 }
 
-async function asaas(method, path, body) {
-  const res = await fetch(`${ASAAS_URL}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'access_token': ASAAS_KEY,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data?.errors?.[0]?.description || data?.message || `Asaas ${res.status}`)
-  return data
-}
-
-async function buscarOuCriarCustomer(comerciante, cpf) {
-  // Procura pelo externalReference (nosso ID)
-  const lista = await asaas('GET', `/customers?externalReference=${comerciante.id}&limit=1`)
-  if (lista?.data?.length > 0) {
-    // Atualiza CPF se ainda não tinha
-    const c = lista.data[0]
-    if (cpf && !c.cpfCnpj) {
-      await asaas('PUT', `/customers/${c.id}`, { cpfCnpj: cpf }).catch(() => {})
-    }
-    return c.id
-  }
-
-  // Cria novo customer
-  const customer = await asaas('POST', '/customers', {
-    name: comerciante.nome_completo || comerciante.email,
-    email: comerciante.email,
-    mobilePhone: comerciante.whatsapp?.replace(/\D/g, '') || undefined,
-    cpfCnpj: cpf || undefined,
-    externalReference: comerciante.id,
-  })
-  return customer.id
-}
 
 async function pagamentoRoutes(fastify) {
 

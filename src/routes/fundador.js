@@ -4,34 +4,11 @@
 const { supabaseAdmin } = require('../config/supabase')
 const { autenticar }    = require('../middleware/auth')
 
-const ASAAS_KEY      = process.env.ASAAS_API_KEY
-const ASAAS_URL      = process.env.ASAAS_BASE_URL || 'https://sandbox.asaas.com/api/v3'
+const { asaas, buscarOuCriarCustomer } = require('../lib/asaas')
 const FRONTEND_URL   = process.env.FRONTEND_URL   || 'https://painel.zappicidadebarcarena.com.br'
 const PRAZO_FIM      = new Date('2026-06-16T23:59:59-03:00')
 const VALOR_FUNDADOR = 197.00
 
-async function asaas(method, path, body) {
-  const res = await fetch(`${ASAAS_URL}${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', 'access_token': ASAAS_KEY },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  const data = await res.json()
-  if (!res.ok) throw new Error(data?.errors?.[0]?.description || data?.message || `Asaas ${res.status}`)
-  return data
-}
-
-async function buscarOuCriarCustomer(comerciante) {
-  const lista = await asaas('GET', `/customers?externalReference=${comerciante.id}&limit=1`)
-  if (lista?.data?.length > 0) return lista.data[0].id
-  const customer = await asaas('POST', '/customers', {
-    name:  comerciante.nome_completo || comerciante.email,
-    email: comerciante.email,
-    mobilePhone: comerciante.whatsapp?.replace(/\D/g, '') || undefined,
-    externalReference: comerciante.id,
-  })
-  return customer.id
-}
 
 async function fundadorRoutes(fastify) {
 
