@@ -4,6 +4,7 @@
 // Registra o scan e redireciona para o WhatsApp do bot
 // ============================================================
 const { supabaseAdmin } = require('../config/supabase')
+const logger = require('../lib/logger')
 
 const WHATSAPP_BOT = '5591993870599'
 const SITE_HOME    = 'https://www.zappicidadebarcarena.com.br'
@@ -45,7 +46,7 @@ async function qrRoutes(fastify) {
         })
         .eq('id', qr.id)
         .then(() => {})
-        .catch(() => {})
+        .catch(e => logger.aviso('qr', `Falha ao incrementar scan do QR ${codigo}: ${e.message}`))
 
       // Redireciona para WhatsApp com contexto
       const texto = `Oi Zappi! Quero saber sobre ${nomeComercio}`
