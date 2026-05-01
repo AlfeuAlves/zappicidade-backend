@@ -857,7 +857,7 @@ async function adminRoutes(fastify) {
       const tel = (c.whatsapp || '').replace(/\D/g, '')
       if (!tel || tel.length < 10) { falhas++; continue }
 
-      const LOGO_URL = process.env.PROSPECCAO_LOGO_URL || ''
+      const LOGO_URL = process.env.PROSPECCAO_LOGO_URL || 'https://cdondpsnszpwruflagyt.supabase.co/storage/v1/object/public/comercios/LOGOMENSAGEM.png'
 
       const legendas = [
         `Oi! 👋 O *${c.nome}* já aparece no *ZappiCidade* — o guia comercial de Barcarena pelo WhatsApp.\n\nMoradores buscam negócios como o seu todos os dias por aqui. Cadastre-se grátis e complete seu perfil! 🚀`,
