@@ -4,7 +4,7 @@
 const { supabaseAdmin } = require('../config/supabase')
 const logger = require('../lib/logger')
 const rankingConfig     = require('../config/rankingConfig')
-const { sendText }      = require('../bot/zapi')
+const { sendText, sendImage, sendButtonUrl } = require('../bot/zapi')
 const https             = require('https')
 const crypto            = require('crypto')
 
@@ -857,92 +857,24 @@ async function adminRoutes(fastify) {
       const tel = (c.whatsapp || '').replace(/\D/g, '')
       if (!tel || tel.length < 10) { falhas++; continue }
 
-      const categoria = c.categorias?.nome || 'estabelecimento'
-      const linkPerfil = `${SITE_BASE}/${c.slug}`
-      const exemplosBusca = {
-        'Farmácias': ['Farmácia aberta agora perto de mim?', 'Onde comprar remédio em Barcarena?', 'Tem farmácia de plantão hoje?'],
-        'Restaurantes': ['Restaurante que serve marmita hoje?', 'Onde almoçar bem em Barcarena?', 'Tem self-service aberto agora?'],
-        'Padarias': ['Padaria aberta cedo em Barcarena?', 'Onde tem pão fresquinho agora?', 'Padaria que entrega em Barcarena?'],
-        'Supermercados': ['Supermercado mais perto de mim?', 'Onde fazer compras em Barcarena?', 'Tem supermercado aberto agora?'],
-      }
-      const buscasCategoria = exemplosBusca[categoria] || [`Onde tem ${categoria.toLowerCase()} em Barcarena?`, `Melhor ${categoria.toLowerCase()} de Barcarena?`, `${categoria} aberto agora em Barcarena?`]
-      const exemploBusca = buscasCategoria[Math.floor(Math.random() * buscasCategoria.length)]
+      const LOGO_URL = process.env.PROSPECCAO_LOGO_URL || ''
 
-      const variantes = [
-        // Variante 1 — foco no bot
-        `Olá! 👋
-
-Somos o *ZappiCidade*, o guia comercial digital de Barcarena.
-
-Os moradores usam nosso assistente no WhatsApp pra encontrar comércios como o *${c.nome}* — e ele já aparece nas buscas! 🎉
-
-Experimente como funciona:
-👉 https://zappicidadebarcarena.com.br/zappi
-
-📍 Veja o perfil do seu negócio:
-${linkPerfil}
-
-Com uma conta grátis você pode editar horários, adicionar foto e receber mais clientes:
-👉 ${PAINEL_URL}
-
-Qualquer dúvida é só responder. 😊
-— Equipe ZappiCidade`,
-
-        // Variante 2 — foco no perfil já criado
-        `Oi! Tudo bem? 😊
-
-Aqui é a equipe do *ZappiCidade* — o assistente de Barcarena pelo WhatsApp.
-
-Tenho uma boa notícia: o *${c.nome}* já tem um perfil criado no nosso guia e está aparecendo pra moradores que buscam ${categoria.toLowerCase()} por aqui! 🏪
-
-📍 Confira:
-${linkPerfil}
-
-Quer experimentar como os moradores nos usam?
-👉 https://zappicidadebarcarena.com.br/zappi
-
-Com cadastro gratuito você completa o perfil e aparece ainda mais:
-${PAINEL_URL}
-
-— Equipe ZappiCidade`,
-
-        // Variante 3 — foco na busca do morador
-        `Olá! 👋
-
-Sabia que moradores de Barcarena perguntam ao *ZappiCidade* coisas como:
-_"${exemploBusca}"_
-
-E o *${c.nome}* já é um dos indicados! 🤖✅
-
-Veja seu perfil:
-📍 ${linkPerfil}
-
-Quer conhecer o assistente?
-👉 https://zappicidadebarcarena.com.br/zappi
-
-Com uma conta grátis você edita horários, adiciona foto e recebe contatos de clientes direto:
-${PAINEL_URL}
-
-— Equipe ZappiCidade`,
-
-        // Variante 4 — mais direta e curta
-        `Oi! 😊 Aqui é o *ZappiCidade*.
-
-O *${c.nome}* já está cadastrado no nosso guia digital de Barcarena e aparece nas buscas dos moradores pelo WhatsApp! 🎉
-
-📍 ${linkPerfil}
-
-Acesse grátis e complete seu perfil — adicione foto, horários e receba mais clientes:
-👉 ${PAINEL_URL}
-
-Dúvidas? É só responder aqui.
-— Equipe ZappiCidade`,
+      const legendas = [
+        `Oi! 👋 O *${c.nome}* já aparece no *ZappiCidade* — o guia comercial de Barcarena pelo WhatsApp.\n\nMoradores buscam negócios como o seu todos os dias por aqui. Cadastre-se grátis e complete seu perfil! 🚀`,
+        `Olá! 😊 O *${c.nome}* já está no *ZappiCidade*, o guia digital de Barcarena.\n\nQuem busca por aqui encontra seu negócio. Acesse grátis e adicione foto, horários e muito mais! 🏪`,
+        `Oi! O *ZappiCidade* é o guia de Barcarena pelo WhatsApp — e o *${c.nome}* já faz parte! 🎉\n\nComplete seu perfil gratuitamente e alcance mais clientes na sua cidade!`,
+        `Olá! 👋 Moradores de Barcarena usam o *ZappiCidade* pra encontrar negócios como o *${c.nome}* todos os dias.\n\nCadastre-se grátis e mostre seus horários, fotos e contato! ✅`,
       ]
 
-      const mensagem = variantes[i % variantes.length]
+      const legenda = legendas[i % legendas.length]
 
       try {
-        await sendText(tel, mensagem)
+        if (LOGO_URL) {
+          await sendImage(tel, LOGO_URL, legenda)
+        } else {
+          await sendText(tel, legenda)
+        }
+        await sendButtonUrl(tel, ' ', '— Equipe ZappiCidade', '🟢 QUERO CADASTRAR GRÁTIS!', PAINEL_URL)
         log.enviados.push({ id: c.id, nome: c.nome, telefone: tel, enviado_em: new Date().toISOString() })
         await salvarLogProspeccao(log)
         enviados++

@@ -85,4 +85,41 @@ async function getStatus() {
   return await res.json()
 }
 
-module.exports = { sendText, sendTyping, getStatus }
+// ── Enviar imagem com legenda ─────────────────────────────────
+
+async function sendImage(telefone, imageUrl, caption = '') {
+  const numero = telefone.replace(/\D/g, '').replace(/^(?!55)/, '55')
+  const res = await fetch(getUrl('send-image'), {
+    method:  'POST',
+    headers: getHeaders(),
+    body:    JSON.stringify({ phone: numero, image: imageUrl, caption }),
+  })
+  if (!res.ok) {
+    const erro = await res.text()
+    throw new Error(`Z-API sendImage falhou [${res.status}]: ${erro}`)
+  }
+  return await res.json()
+}
+
+// ── Enviar botão com URL ──────────────────────────────────────
+
+async function sendButtonUrl(telefone, texto, rodape, labelBotao, urlBotao) {
+  const numero = telefone.replace(/\D/g, '').replace(/^(?!55)/, '55')
+  const res = await fetch(getUrl('send-button-actions'), {
+    method:  'POST',
+    headers: getHeaders(),
+    body:    JSON.stringify({
+      phone:   numero,
+      message: texto,
+      footer:  rodape,
+      actions: [{ type: 'url', url: urlBotao, label: labelBotao }],
+    }),
+  })
+  if (!res.ok) {
+    const erro = await res.text()
+    throw new Error(`Z-API sendButtonUrl falhou [${res.status}]: ${erro}`)
+  }
+  return await res.json()
+}
+
+module.exports = { sendText, sendImage, sendButtonUrl, sendTyping, getStatus }
