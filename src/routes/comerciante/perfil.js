@@ -310,7 +310,7 @@ async function perfilRoutes(fastify) {
         `🏪 *${nome}*\n\n` +
         `✅ *APROVAR:*\n${apiUrl}/admin/verificar/${token}\n\n` +
         `❌ *REJEITAR:*\n${apiUrl}/admin/verificar/${token}?rejeitar=true`
-      sendText(founderWa, msg).catch(() => {})
+      sendText(founderWa, msg).catch(e => logger.aviso('aprovacao', `Falha ao notificar fundador via WhatsApp: ${e.message}`))
     }
 
     return { ok: true, comercio }

@@ -155,7 +155,7 @@ async function adminRoutes(fastify) {
     if (c.whatsapp) {
       sendText(c.whatsapp,
         `Olá, ${c.nome_completo || 'comerciante'}! ✅ Sua conta no *ZappiCidade* foi *aprovada*!\n\nAgora escolha seu plano e complete seu cadastro:\n${process.env.FRONTEND_URL}/comerciante/onboarding`
-      ).catch(() => {})
+      ).catch(e => logger.aviso('aprovacao', `Falha ao notificar aprovação via WhatsApp: ${e.message}`, { comerciante_id: id }))
     }
 
     logger.info('aprovacao', `Comerciante aprovado: ${c.nome_completo || id}`, { comercio_id: c.comercio_id }, id, 'comerciante')
@@ -177,7 +177,7 @@ async function adminRoutes(fastify) {
     if (c.whatsapp) {
       sendText(c.whatsapp,
         `Olá, ${c.nome_completo || 'comerciante'}! ❌ Não conseguimos verificar sua conta no *ZappiCidade*.\n${motivo ? `Motivo: ${motivo}\n` : ''}\nEntre em contato conosco para mais informações.`
-      ).catch(() => {})
+      ).catch(e => logger.aviso('aprovacao', `Falha ao notificar rejeição via WhatsApp: ${e.message}`, { comerciante_id: id }))
     }
 
     logger.aviso('aprovacao', `Comerciante rejeitado: ${c.nome_completo || id}`, { motivo: motivo || null }, id, 'comerciante')
@@ -254,7 +254,7 @@ async function adminRoutes(fastify) {
       sendText(
         comerciante.whatsapp,
         `Olá, ${comerciante.nome_completo || 'comerciante'}! ❌ Sua conta no *ZappiCidade* foi *cancelada*.\n\nSe acredita que isso foi um engano, entre em contato com o suporte.`
-      ).catch(() => {})
+      ).catch(e => logger.aviso('aprovacao', `Falha ao notificar cancelamento via WhatsApp: ${e.message}`, { comerciante_id: comerciante.id }))
     }
 
     return { ok: true }
@@ -1045,7 +1045,7 @@ async function adminRoutes(fastify) {
       const msg = rejeitar
         ? `Olá, ${comerciante.nome_completo || 'comerciante'}! ❌ Não conseguimos verificar sua conta. Entre em contato.`
         : `Olá, ${comerciante.nome_completo || 'comerciante'}! ✅ Conta verificada! Acesse: ${process.env.FRONTEND_URL}/comerciante/dashboard`
-      sendText(comerciante.whatsapp, msg).catch(() => {})
+      sendText(comerciante.whatsapp, msg).catch(e => logger.aviso('aprovacao', `Falha ao notificar verificação via WhatsApp: ${e.message}`))
     }
 
     return reply.type('text/html').send(`

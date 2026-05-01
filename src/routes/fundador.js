@@ -5,6 +5,7 @@ const { supabaseAdmin } = require('../config/supabase')
 const { autenticar }    = require('../middleware/auth')
 
 const { asaas, buscarOuCriarCustomer } = require('../lib/asaas')
+const logger         = require('../lib/logger')
 const FRONTEND_URL   = process.env.FRONTEND_URL   || 'https://painel.zappicidadebarcarena.com.br'
 const PRAZO_FIM      = new Date('2026-06-16T23:59:59-03:00')
 const VALOR_FUNDADOR = 197.00
@@ -150,7 +151,7 @@ async function fundadorRoutes(fastify) {
         .eq('categoria_id', categoria_id)
         .eq('status', 'pendente')
 
-      await supabaseAdmin.rpc('fn_decrementar_vaga_fundador', { p_categoria_id: categoria_id }).catch(() => {})
+      await supabaseAdmin.rpc('fn_decrementar_vaga_fundador', { p_categoria_id: categoria_id }).catch(e => logger.erro('fundador', `Falha ao decrementar vaga: ${e.message}`, { categoria_id }))
 
       fastify.log.error(`[fundador/checkout] asaas error: ${err.message}`)
       return reply.status(500).send({ erro: err.message })

@@ -14,6 +14,7 @@ const agente  = require('../bot/agente')
 const zapi    = require('../bot/zapi')
 const sessoes = require('../bot/sessoes')
 const { supabaseAdmin } = require('../config/supabase')
+const logger  = require('../lib/logger')
 
 // Normaliza telefone: sempre com 55 na frente (padrão Z-API)
 function normalizarTelefone(tel) {
@@ -34,18 +35,17 @@ function registrarUsuario(telefone) {
     )
     .then(({ error }) => {
       if (error) {
-        console.error('[registrarUsuario] upsert erro:', error.message, '| tel:', tel)
+        logger.aviso('bot', `Erro ao registrar usuário: ${error.message}`, { tel })
         return
       }
-      // Incrementa contador de interações
       supabaseAdmin
         .rpc('incrementar_interacoes', { p_whatsapp: tel })
         .then(({ error: rpcErr }) => {
-          if (rpcErr) console.error('[registrarUsuario] rpc erro:', rpcErr.message, '| tel:', tel)
+          if (rpcErr) logger.aviso('bot', `Erro ao incrementar interações: ${rpcErr.message}`, { tel })
         })
-        .catch(e => console.error('[registrarUsuario] rpc catch:', e.message))
+        .catch(e => logger.erro('bot', `Erro inesperado ao incrementar interações: ${e.message}`, { tel }))
     })
-    .catch(e => console.error('[registrarUsuario] catch:', e.message))
+    .catch(e => logger.erro('bot', `Erro inesperado ao registrar usuário: ${e.message}`, { tel }))
 }
 
 async function webhookRoutes(fastify) {
