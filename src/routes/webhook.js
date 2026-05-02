@@ -130,15 +130,6 @@ _Ex: "farmácia aberta agora", "ponto de açaí no Centro", "restaurante"_`
     // ── Processa com o agente ──────────────────────────────
     fastify.log.info({ telefone, texto }, '📨 Mensagem recebida')
 
-    // MANUTENÇÃO — responde automaticamente e encerra
-    const EM_MANUTENCAO = true
-    if (EM_MANUTENCAO) {
-      await zapi.sendText(telefone,
-        '⚙️ Olá! O *ZappiCidade* está em manutenção no momento.\n\nVoltamos em breve com tudo funcionando! 😊\n\nEnquanto isso, você pode acessar o guia pelo site:\n👉 https://zappicidadebarcarena.com.br'
-      ).catch(() => {})
-      return reply.status(200).send({ ok: true, manutencao: true })
-    }
-
     // Mostra "digitando..." enquanto a IA processa
     zapi.sendTyping(telefone, 15000)
 
