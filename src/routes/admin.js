@@ -1080,7 +1080,7 @@ async function adminRoutes(fastify) {
   // ── GET /admin/analytics — visão geral de todos os comércios ─
   fastify.get('/analytics', { preHandler: autenticarAdmin }, async (req, reply) => {
     const { periodo = '30d' } = req.query
-    const diasMap = { '7d': 7, '30d': 30, '90d': 90 }
+    const diasMap = { '1d': 1, '7d': 7, '30d': 30, '90d': 90 }
     const dias = diasMap[periodo] || 30
     const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString()
 
