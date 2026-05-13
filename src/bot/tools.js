@@ -215,6 +215,13 @@ async function buscar_comercios({ busca, categoria, bairro, aberto, tem_whatsapp
     }
   }
 
+  // Registra impressões para analytics (fire-and-forget)
+  if (resultados.length > 0) {
+    supabase.from('eventos_comercio').insert(
+      resultados.map(c => ({ comercio_id: c.id, tipo: 'impressao', termo_busca: busca || null }))
+    ).then(() => {}).catch(() => {})
+  }
+
   return {
     total,
     exibindo: resultados.length,
