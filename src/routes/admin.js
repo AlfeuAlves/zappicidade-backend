@@ -1136,6 +1136,56 @@ async function adminRoutes(fastify) {
 
     return { periodo, totais, ranking, top_termos }
   })
+
+  // ── GET /admin/informacoes ─────────────────────────────────────
+  fastify.get('/informacoes', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { status, categoria, page = 1, limit = 30 } = req.query
+    const offset = (parseInt(page) - 1) * parseInt(limit)
+
+    let query = supabaseAdmin
+      .from('informacoes_cidade')
+      .select('*', { count: 'exact' })
+      .order('criado_em', { ascending: false })
+      .range(offset, offset + parseInt(limit) - 1)
+
+    if (status)    query = query.eq('status', status)
+    if (categoria) query = query.eq('categoria', categoria)
+
+    const { data, error, count } = await query
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { data, total: count }
+  })
+
+  // ── PUT /admin/informacoes/:id ─────────────────────────────────
+  fastify.put('/informacoes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { status, titulo, conteudo, categoria, icone, fonte, valido_ate } = req.body || {}
+
+    const updates = {}
+    if (titulo)     updates.titulo     = titulo.trim()
+    if (conteudo)   updates.conteudo   = conteudo.trim()
+    if (categoria)  updates.categoria  = categoria
+    if (icone !== undefined) updates.icone = icone
+    if (fonte !== undefined) updates.fonte = fonte
+    if (valido_ate !== undefined) updates.valido_ate = valido_ate
+    if (status) {
+      updates.status = status
+      if (status === 'aprovado') updates.aprovado_em = new Date().toISOString()
+    }
+    updates.atualizado_em = new Date().toISOString()
+
+    const { error } = await supabaseAdmin.from('informacoes_cidade').update(updates).eq('id', id)
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
+
+  // ── DELETE /admin/informacoes/:id ──────────────────────────────
+  fastify.delete('/informacoes/:id', { preHandler: autenticarAdmin }, async (req, reply) => {
+    const { id } = req.params
+    const { error } = await supabaseAdmin.from('informacoes_cidade').delete().eq('id', id)
+    if (error) return reply.status(500).send({ erro: error.message })
+    return { ok: true }
+  })
 }
 
 module.exports = adminRoutes

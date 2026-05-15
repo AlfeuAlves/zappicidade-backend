@@ -126,6 +126,33 @@ const TOOLS = [
       },
       required: ['telefone']
     }
+  },
+  {
+    name: 'buscar_informacoes',
+    description:
+      'Busca informações úteis sobre a cidade de Barcarena: horários de lancha e balsa, ' +
+      'eventos, serviços municipais, documentos, saúde e outros dados práticos para moradores. ' +
+      'Use quando o usuário perguntar sobre horários de transporte (lancha, balsa, ônibus), ' +
+      'eventos na cidade, serviços públicos, documentação, saúde pública ou qualquer informação ' +
+      'de utilidade pública que NÃO seja um comércio.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        categoria: {
+          type: 'string',
+          description: 'Categoria: "transporte" (lancha, balsa, ônibus) | "saude" (posto, UPA, hospital) | "documentos" (cartório, DETRAN) | "eventos" (festas, shows) | "servicos" (serviços públicos municipais) | "outros"'
+        },
+        busca: {
+          type: 'string',
+          description: 'Palavras-chave para busca (ex: "lancha Belém", "balsa Arapari", "vacina")'
+        },
+        limit: {
+          type: 'integer',
+          description: 'Máximo de resultados (padrão: 5)',
+          default: 5
+        }
+      }
+    }
   }
 ]
 
@@ -336,6 +363,37 @@ async function buscar_promocoes({ categoria, limit = 5 }) {
   }
 }
 
+async function buscar_informacoes({ categoria, busca, limit = 5 }) {
+  limit = Math.min(limit, 10)
+
+  let query = supabase
+    .from('informacoes_cidade')
+    .select('id, titulo, conteudo, categoria, icone, fonte, valido_ate, criado_em')
+    .eq('status', 'aprovado')
+    .order('criado_em', { ascending: false })
+    .limit(limit)
+
+  if (categoria) query = query.eq('categoria', categoria)
+  if (busca)     query = query.or(`titulo.ilike.%${busca}%,conteudo.ilike.%${busca}%`)
+
+  const { data, error } = await query
+
+  if (error) return { erro: error.message }
+  if (!data || data.length === 0) return { resultado: 'nenhuma_informacao_encontrada' }
+
+  return {
+    total: data.length,
+    informacoes: data.map(i => ({
+      titulo:    i.titulo,
+      conteudo:  i.conteudo,
+      categoria: i.categoria,
+      icone:     i.icone || null,
+      fonte:     i.fonte || null,
+      valido_ate: i.valido_ate ? new Date(i.valido_ate).toLocaleDateString('pt-BR') : null,
+    }))
+  }
+}
+
 async function registrar_optin({ telefone, nome }) {
   const { error } = await supabase
     .from('leads')
@@ -358,10 +416,11 @@ async function registrar_optin({ telefone, nome }) {
 
 async function executarTool(nome, input, localizacao = null) {
   try {
-    if (nome === 'buscar_comercios')   return await buscar_comercios(input, localizacao)
+    if (nome === 'buscar_comercios')      return await buscar_comercios(input, localizacao)
     if (nome === 'get_detalhes_comercio') return await get_detalhes_comercio(input)
-    if (nome === 'buscar_promocoes')   return await buscar_promocoes(input)
-    if (nome === 'registrar_optin')    return await registrar_optin(input)
+    if (nome === 'buscar_promocoes')      return await buscar_promocoes(input)
+    if (nome === 'registrar_optin')       return await registrar_optin(input)
+    if (nome === 'buscar_informacoes')    return await buscar_informacoes(input)
     return { erro: `tool_desconhecida: ${nome}` }
   } catch (err) {
     return { erro: err.message }
