@@ -5,7 +5,7 @@
 // dados reais do banco de dados.
 // ============================================================
 
-const { supabase } = require('../config/supabase')
+const { supabase, supabaseAdmin } = require('../config/supabase')
 
 // ── Haversine — distância em km entre dois pontos GPS ────────
 function distanciaKm(lat1, lng1, lat2, lng2) {
@@ -366,7 +366,7 @@ async function buscar_promocoes({ categoria, limit = 5 }) {
 async function buscar_informacoes({ categoria, busca, limit = 5 }) {
   limit = Math.min(limit, 10)
 
-  let query = supabase
+  let query = supabaseAdmin
     .from('informacoes_cidade')
     .select('id, titulo, conteudo, categoria, icone, fonte, valido_ate, criado_em')
     .eq('status', 'aprovado')
